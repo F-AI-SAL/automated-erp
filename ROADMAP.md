@@ -42,7 +42,7 @@ Accounts + tools ready করো:
 
 - [x] Next.js + TypeScript scaffold
 - [x] Folder structure: `/modules/{core,sales,inventory,finance,billing}`, `/lib/eventbus`, `/workers/dispatcher`
-- [~] DB migration — all tables: _(outbox done in `0000_outbox.sql`; rest in `0001` on Day 3)_
+- [x] DB migration — all tables: `0000_outbox.sql` + `0001_schema.sql` (parser-validated, columns matched to handler queries; not yet run on a live DB)
   - [ ] companies, branches, users, roles, permissions, role_permissions
   - [ ] products, recipes, raw_materials, suppliers
   - [ ] purchase_orders, purchase_items
@@ -53,7 +53,7 @@ Accounts + tools ready করো:
   - [ ] plans, subscriptions, payments
   - [ ] notifications, ai_logs, audit_logs
   - [x] **outbox** (event backbone) — `0000_outbox.sql`
-- [~] Enable **RLS** on every tenant table _(outbox policy done; rest with `0001`)_
+- [x] Enable **RLS** on every tenant table _(all 24 tenant tables + child-table policies in `0001`)_
 - [x] `EventBus` interface + `PostgresOutboxBus` driver
 - [x] **Outbox Dispatcher worker** — poll `pending` → route → mark `done` → retry w/ backoff
 - [ ] Auth: register/login, JWT + refresh, RBAC middleware
@@ -205,4 +205,5 @@ Accounts + tools ready করো:
 
 ## ✅ Changelog
 
-- **2026-07-02** — Phase 0 scaffold created: modular-monolith layout, `EventBus` + `PostgresOutboxBus`, outbox dispatcher worker, `sale.posted` → inventory/finance reference flow, health check, `0000_outbox.sql`, docker-compose (Postgres + n8n). Next: apply migrations + `0001` full schema (Day 3).
+- **2026-07-02** — Phase 0 scaffold created: modular-monolith layout, `EventBus` + `PostgresOutboxBus`, outbox dispatcher worker, `sale.posted` → inventory/finance reference flow, health check, `0000_outbox.sql`, docker-compose (Postgres + n8n).
+- **2026-07-02 (audit)** — Deep audit + real verification: `git init` + commits; `npm install`; **`tsc` found & fixed 4 type bugs** (DomainEvent payload → `unknown`); **fixed dispatcher RLS bug** (dedicated `workerPool` w/ BYPASSRLS role, else it silently drains 0 rows); dispatcher **boot-verified** (registers handlers, resolves `@/` aliases). Wrote **`0001_schema.sql`** (all tables, FK, indexes, RLS) — **parser-validated** against real Postgres grammar (0 errors). ⏳ Not yet run on a live DB (needs Supabase/Postgres creds — Pre-Flight). Next: `core` module (auth + RBAC + company/branch CRUD).
