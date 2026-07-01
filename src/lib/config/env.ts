@@ -1,0 +1,31 @@
+import { z } from "zod";
+
+/**
+ * Central, validated environment config. Fail fast at boot if something is missing.
+ * Import `env` everywhere instead of reading process.env directly.
+ */
+const schema = z.object({
+  DATABASE_URL: z.string().url(),
+
+  JWT_SECRET: z.string().min(8),
+  JWT_REFRESH_SECRET: z.string().min(8),
+  JWT_ACCESS_TTL: z.string().default("15m"),
+  JWT_REFRESH_TTL: z.string().default("30d"),
+
+  OPENAI_API_KEY: z.string().optional(),
+  ANTHROPIC_API_KEY: z.string().optional(),
+
+  WHATSAPP_TOKEN: z.string().optional(),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
+  WHATSAPP_VERIFY_TOKEN: z.string().optional(),
+  N8N_WEBHOOK_URL: z.string().url().optional(),
+
+  DISPATCHER_POLL_INTERVAL_MS: z.coerce.number().default(2000),
+  DISPATCHER_BATCH_SIZE: z.coerce.number().default(25),
+  DISPATCHER_MAX_RETRIES: z.coerce.number().default(5),
+
+  SENTRY_DSN: z.string().optional(),
+});
+
+export const env = schema.parse(process.env);
+export type Env = z.infer<typeof schema>;
