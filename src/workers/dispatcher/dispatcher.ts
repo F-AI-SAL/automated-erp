@@ -1,4 +1,4 @@
-import { pool } from "@/lib/db/client";
+import { workerPool as pool } from "@/lib/db/client";
 import { env } from "@/lib/config/env";
 import { handlersFor } from "@/lib/eventbus";
 import type { DomainEvent, EventType } from "@/lib/eventbus";

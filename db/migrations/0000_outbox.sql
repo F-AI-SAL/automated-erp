@@ -35,5 +35,7 @@ ALTER TABLE outbox ENABLE ROW LEVEL SECURITY;
 CREATE POLICY outbox_tenant_isolation ON outbox
   USING (company_id = current_setting('app.current_company', true)::uuid);
 
--- NOTE: the dispatcher connects with a role that BYPASSES RLS (or sets the
--- company context per row, as dispatcher.ts does) so it can drain all tenants.
+-- NOTE: the dispatcher connects via DISPATCHER_DATABASE_URL with a BYPASSRLS /
+-- service role (see workerPool in src/lib/db/client.ts) so its cross-tenant claim
+-- query is not filtered to zero rows. It then sets app.current_company per row
+-- before running that row's handlers.

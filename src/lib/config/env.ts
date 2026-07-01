@@ -6,6 +6,10 @@ import { z } from "zod";
  */
 const schema = z.object({
   DATABASE_URL: z.string().url(),
+  // The dispatcher must read outbox rows across ALL tenants, so it connects with a
+  // role that bypasses RLS (Supabase `service_role`, or a BYPASSRLS Postgres role).
+  // Falls back to DATABASE_URL for local dev where the default role is superuser.
+  DISPATCHER_DATABASE_URL: z.string().url().optional(),
 
   JWT_SECRET: z.string().min(8),
   JWT_REFRESH_SECRET: z.string().min(8),

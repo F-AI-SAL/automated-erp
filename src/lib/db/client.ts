@@ -2,12 +2,23 @@ import { Pool, type PoolClient } from "pg";
 import { env } from "@/lib/config/env";
 
 /**
- * Single shared pg Pool for the whole app + the dispatcher worker.
- * Supabase is plain Postgres, so `pg` works with its connection string.
+ * App pool — connects with the tenant-scoped role. Every request goes through
+ * `withTenant()`, so RLS isolates each company.
  */
 export const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: 10,
+  idleTimeoutMillis: 30_000,
+});
+
+/**
+ * Worker pool — used ONLY by the outbox dispatcher, which must drain events for
+ * every tenant. Connects with a BYPASSRLS / service role so the cross-tenant
+ * claim query in dispatchOnce() is not filtered to zero rows by RLS.
+ */
+export const workerPool = new Pool({
+  connectionString: env.DISPATCHER_DATABASE_URL ?? env.DATABASE_URL,
+  max: 5,
   idleTimeoutMillis: 30_000,
 });
 

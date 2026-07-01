@@ -11,14 +11,14 @@ export type EventType =
   | "sellsheet.received"
   | "subscription.renewed";
 
-export interface DomainEvent<TPayload = Record<string, unknown>> {
+export interface DomainEvent<TPayload = unknown> {
   /** what happened */
   type: EventType;
   /** tenant that owns this event (drives RLS + routing) */
   companyId: string;
   /** branch scope, when applicable */
   branchId?: string;
-  /** event-specific data */
+  /** event-specific data — cast to the matching payload type inside handlers */
   payload: TPayload;
 }
 
