@@ -23,7 +23,8 @@
     "test:category": "tsx scripts/category-test.ts",
     "test:parser": "tsx scripts/parser-test.ts",
     "test:ocr": "tsx --env-file-if-exists=.env scripts/ocr-test.ts",
-    "telegram:poll": "tsx --env-file-if-exists=.env scripts/telegram-poll.ts"
+    "telegram:poll": "tsx --env-file-if-exists=.env scripts/telegram-poll.ts",
+    "set-webhook": "tsx --env-file-if-exists=.env scripts/set-webhook.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.109.1",
