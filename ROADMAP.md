@@ -69,13 +69,13 @@ Accounts + tools ready করো:
 ## 🔥 PHASE 1 — Core MVP (the wow-loop)
 **Goal:** photo → AI → profit on WhatsApp. **Timeline: Week 3–6. Payment: 35%.** *(Money phase.)*
 
-- [ ] **Products/Menu** module — CRUD, category, price, VAT, availability
-- [ ] **Raw Materials + Recipes (BoM)** — link product → materials + qty
-- [ ] **Sales** module — sell-sheet header + line items; `source` field; publish `sale.posted`
-- [ ] **Inventory handler** — on `sale.posted` → recipe lookup → negative `stock_movements` → update `stock`
+- [x] **Products/Menu** module — create/list, category, price, VAT (PR #13); _availability toggle later_
+- [~] **Raw Materials + Recipes (BoM)** — schema + inventory handler consumes recipes; CRUD API pending
+- [x] **Sales** module — manual sell-sheet API, `source` field, publishes `sale.posted` (PR #13)
+- [x] **Inventory handler** — `sale.posted` → recipe → `stock_movements` → `stock` (smoke-tested)
 - [ ] **Purchase** module — PO + items → publish `purchase.received` → stock increase
 - [ ] **Expenses** module — categories + entries → publish `expense.recorded`
-- [ ] **Finance handler** — on `sale.posted` / `expense.recorded` → recompute `profit_loss` rollup
+- [x] **Finance handler** — `sale.posted`/`expense.recorded` → `profit_loss` rollup (tested)
 - [ ] **Dashboard** — Today's Sales / Profit / Cash / Low-stock tiles + trend chart (Supabase realtime)
 - [ ] **n8n WhatsApp pipeline** (10 nodes):
   - [ ] inbound image trigger
@@ -202,6 +202,7 @@ Branch protection on `main`: required checks = **CI Gate** + **Analyze (JS/TS)**
 
 > ✅ Deprecation warnings resolved: actions bumped (checkout v7, setup-node v6, codeql v4). Dependabot now ignores **all npm majors** — majors are adopted deliberately, minor/patch flow automatically.
 
+- **2026-07-02 (Phase 1 start)** — First MVP slice merged (**PR #13**): Products/Menu create+list (`menu:manage`), manual Sales API (`/api/sales`) → `sale.posted` → stock/P&L event flow, `listSales`, audit on `postSale`. New **sales-test** in CI (real Postgres) green: product + manual sale → P&L(750) + RBAC + audit. WhatsApp/AI ingestion deferred (Pre-Flight blocked) — will reuse this same `postSale` path. Next Phase 1: Raw-material/Recipe CRUD, Purchase, Expenses, Dashboard.
 - **2026-07-02 (Phase 0 ✅)** — Audit-log writer merged (**PR #12**): `writeAudit()` atomic-with-mutation, wired into register/login/branch, CI core-test asserts the rows. **Phase 0 fully complete** — foundation, event backbone, core auth/RBAC, audit all done + CI-verified. Next: Phase 1 MVP (Products/Recipes → manual Sales → wow-loop; WhatsApp/AI once Pre-Flight accounts exist).
 - **2026-07-02 (core module)** — First feature via the protected PR flow (**PR #11**, feat/core-auth-rbac → squash-merge). Built **auth** (register/login/refresh, HS256 JWT + scrypt, **zero new deps** — `node:crypto`), **RBAC** (8-role matrix + `requirePermission`), **company/branch CRUD** (RLS), API routes (`/api/auth/*`, `/api/branches`). New **core-test** runs in CI on real Postgres (register/login/refresh + JWT + RBAC + branch CRUD — all ✅). All 5 required checks green; branch protection verified working. Left in Phase 0: audit-log writer.
 
