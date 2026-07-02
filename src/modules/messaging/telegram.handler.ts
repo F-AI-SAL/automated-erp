@@ -9,7 +9,7 @@ import { ingestDailyClosing } from "./daily-ingest.service";
 import { parseClosingText, CLOSING_TEMPLATE } from "./closing-parser";
 import { recordDailyClosing } from "@/modules/finance/daily-closing.service";
 import { addFixedCost, listFixedCosts, removeFixedCost } from "@/modules/finance/fixed-cost.service";
-import { getBranchReport } from "@/modules/finance/report.service";
+import { getBranchPL } from "@/modules/finance/report.service";
 
 const bdt = (n: number) => `৳${n.toLocaleString("en-US")}`;
 
@@ -235,7 +235,7 @@ async function handleReport(chatId: string): Promise<void> {
     await sendMessage(chatId, "This chat isn't linked yet. Use <code>/link YOUR-CODE</code> first.");
     return;
   }
-  const rep = await getBranchReport(branch.company_id, branch.id);
+  const rep = await getBranchPL(branch.company_id, branch.id);
   if (!rep.hasData) {
     await sendMessage(chatId, "No daily closings recorded yet. Send one first (/format).");
     return;
@@ -243,19 +243,24 @@ async function handleReport(chatId: string): Promise<void> {
   const L = rep.latest!;
   const M = rep.month;
   const cash =
-    L.status === "short" ? `⚠️ Short ${bdt(L.shortage)}` : L.status === "surplus" ? `💚 Beshi ${bdt(-L.shortage)}` : "✅ Matched";
-  const monthNet = M.profit >= 0 ? `<b>${bdt(M.profit)}</b> 🟢` : `<b>${bdt(M.profit)}</b> 🔴`;
-  const dayNet = L.net >= 0 ? `<b>${bdt(L.net)}</b>` : `<b>${bdt(L.net)}</b> 🔴`;
+    L.cashStatus === "short" ? `⚠️ Short ${bdt(L.cashShortage)}`
+    : L.cashStatus === "surplus" ? `💚 Beshi ${bdt(-L.cashShortage)}`
+    : "✅ Matched";
+  const pl = (n: number) => (n >= 0 ? `<b>${bdt(n)}</b> 🟢` : `<b>${bdt(n)}</b> 🔴`);
 
   const lines = [
-    `📅 <b>${L.date}</b> (latest day)`,
-    `  Sale ${bdt(L.sale)} − Expenses ${bdt(L.expenses)} = Gross ${bdt(L.gross)}`,
-    `  − Fixed/day ${bdt(L.fixedPerDay)} = <b>Net ${dayNet}</b>`,
-    `  Cash: ${cash}`,
+    `📅 <b>${L.date}</b> (latest day) — P&L`,
+    `  Sale ${bdt(L.sale)}`,
+    `  − Panda commission ${bdt(L.pandaCommission)}  (${(rep.pandaRate*100).toFixed(0)}% of ${bdt(L.pandaSale)})`,
+    `  − Expenses ${bdt(L.expenses)}`,
+    `  − Establishment/day ${bdt(L.establishment)}`,
+    `  = <b>Profit ${pl(L.profit)}</b>`,
+    `  💵 Cash: ${cash}`,
     "",
     `📆 <b>Month ${rep.monthLabel}</b> (${M.days} days)`,
-    `  Sale ${bdt(M.sale)} − Expenses ${bdt(M.expenses)} − Fixed ${bdt(M.fixed)}`,
-    `  = Real profit ${monthNet}`,
+    `  Sale ${bdt(M.sale)}`,
+    `  − Panda comm ${bdt(M.pandaCommission)} − Expenses ${bdt(M.expenses)} − Establishment ${bdt(M.establishment)}`,
+    `  = Real profit ${pl(M.profit)}`,
     `  🗓️ ${M.surplusDays} day(s) beshi · ${M.shortDays} day(s) short`,
   ];
   await sendMessage(chatId, lines.join("\n"));

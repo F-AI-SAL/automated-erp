@@ -3,61 +3,57 @@ import { withTenant } from "@/lib/db/with-tenant";
 interface DayRow {
   closing_date: string;
   sale_total: string;
+  sale_panda: string;
   expenses_total: string;
   shortage: string;
   status: string;
 }
 
-export interface BranchReport {
+export interface PLReport {
   hasData: boolean;
-  monthLabel: string; // e.g. "2026-07"
+  monthLabel: string;
+  pandaRate: number;
+  fixedMonthly: number;
+  establishmentPerDay: number;
   latest: {
     date: string;
     sale: number;
+    pandaSale: number;
+    pandaCommission: number;
     expenses: number;
-    gross: number; // sale − daily expenses
-    fixedPerDay: number;
-    net: number; // gross − fixed/day (real daily profit)
-    shortage: number; // + short, − surplus
-    status: string;
+    establishment: number;
+    totalCost: number;
+    profit: number; // sale − total cost (Excel Profit/Loss)
+    cashShortage: number; // + short, − beshi (from the cash reconciliation)
+    cashStatus: string;
   } | null;
   month: {
     sale: number;
+    pandaCommission: number;
     expenses: number;
-    fixed: number;
-    profit: number; // sale − expenses − fixed
+    establishment: number;
+    totalCost: number;
+    profit: number;
     days: number;
     shortDays: number;
     surplusDays: number;
   };
-  fixedMonthly: number;
 }
 
 /**
- * Daily + monthly report for a branch. Uses the LATEST closing per day (so a
- * corrected re-entry supersedes) for the month of the most recent closing.
- * Fixed costs are applied to PROFIT (not to the daily cash beshi/short).
+ * Excel-exact Profit/Loss:
+ *   panda commission = panda sale × branch rate (default 32%)
+ *   total cost       = panda commission + expenses + establishment (fixed/day)
+ *   profit/loss      = sale − total cost
+ * Fixed cost is applied to PROFIT here — it never touches the daily cash beshi/short.
+ * Uses the LATEST closing per day, for the month of the most recent closing.
  */
-export async function getBranchReport(companyId: string, branchId: string): Promise<BranchReport> {
+export async function getBranchPL(companyId: string, branchId: string): Promise<PLReport> {
   return withTenant(companyId, async (tx) => {
-    const rows = (
-      await tx.query<DayRow>(
-        `WITH latest AS (
-           SELECT DISTINCT ON (closing_date)
-                  closing_date, sale_total, expenses_total, shortage, status
-             FROM daily_closings
-            WHERE branch_id = $1
-            ORDER BY closing_date, created_at DESC
-         )
-         SELECT closing_date::text AS closing_date, sale_total, expenses_total, shortage, status
-           FROM latest
-          WHERE date_trunc('month', closing_date) =
-                (SELECT date_trunc('month', max(closing_date)) FROM latest)
-          ORDER BY closing_date`,
-        [branchId],
-      )
-    ).rows;
-
+    const pandaRate = Number(
+      (await tx.query<{ panda_rate: string }>(`SELECT panda_rate FROM branches WHERE id = $1`, [branchId]))
+        .rows[0]?.panda_rate ?? 0.32,
+    );
     const fixedMonthly = Number(
       (
         await tx.query<{ total: string }>(
@@ -67,59 +63,79 @@ export async function getBranchReport(companyId: string, branchId: string): Prom
         )
       ).rows[0]?.total ?? 0,
     );
+    const establishmentPerDay = Math.round((fixedMonthly / 30) * 100) / 100;
+
+    const rows = (
+      await tx.query<DayRow>(
+        `WITH latest AS (
+           SELECT DISTINCT ON (closing_date)
+                  closing_date, sale_total, sale_panda, expenses_total, shortage, status
+             FROM daily_closings
+            WHERE branch_id = $1
+            ORDER BY closing_date, created_at DESC
+         )
+         SELECT closing_date::text AS closing_date, sale_total, sale_panda, expenses_total, shortage, status
+           FROM latest
+          WHERE date_trunc('month', closing_date) =
+                (SELECT date_trunc('month', max(closing_date)) FROM latest)
+          ORDER BY closing_date`,
+        [branchId],
+      )
+    ).rows;
 
     if (rows.length === 0) {
       return {
-        hasData: false,
-        monthLabel: "",
+        hasData: false, monthLabel: "", pandaRate, fixedMonthly, establishmentPerDay,
         latest: null,
-        month: { sale: 0, expenses: 0, fixed: fixedMonthly, profit: 0, days: 0, shortDays: 0, surplusDays: 0 },
-        fixedMonthly,
+        month: { sale: 0, pandaCommission: 0, expenses: 0, establishment: 0, totalCost: 0, profit: 0, days: 0, shortDays: 0, surplusDays: 0 },
       };
     }
 
+    const r2 = (n: number) => Math.round(n * 100) / 100;
     const monthLabel = rows[0]!.closing_date.slice(0, 7);
-    const fixedPerDay = Math.round((fixedMonthly / 30) * 100) / 100;
 
-    let sale = 0;
-    let expenses = 0;
-    let shortDays = 0;
-    let surplusDays = 0;
+    let sale = 0, pandaComm = 0, expenses = 0, shortDays = 0, surplusDays = 0;
     for (const r of rows) {
       sale += Number(r.sale_total);
+      pandaComm += Number(r.sale_panda) * pandaRate;
       expenses += Number(r.expenses_total);
       if (r.status === "short") shortDays++;
       else if (r.status === "surplus") surplusDays++;
     }
+    const days = rows.length;
+    const monthEstablishment = r2(establishmentPerDay * days);
+    const monthTotalCost = r2(pandaComm + expenses + monthEstablishment);
 
     const last = rows[rows.length - 1]!;
     const lSale = Number(last.sale_total);
+    const lPandaSale = Number(last.sale_panda);
+    const lPandaComm = r2(lPandaSale * pandaRate);
     const lExp = Number(last.expenses_total);
-    const gross = lSale - lExp;
+    const lTotalCost = r2(lPandaComm + lExp + establishmentPerDay);
 
     return {
-      hasData: true,
-      monthLabel,
+      hasData: true, monthLabel, pandaRate, fixedMonthly, establishmentPerDay,
       latest: {
         date: last.closing_date,
         sale: lSale,
+        pandaSale: lPandaSale,
+        pandaCommission: lPandaComm,
         expenses: lExp,
-        gross,
-        fixedPerDay,
-        net: Math.round((gross - fixedPerDay) * 100) / 100,
-        shortage: Number(last.shortage),
-        status: last.status,
+        establishment: establishmentPerDay,
+        totalCost: lTotalCost,
+        profit: r2(lSale - lTotalCost),
+        cashShortage: Number(last.shortage),
+        cashStatus: last.status,
       },
       month: {
-        sale,
-        expenses,
-        fixed: fixedMonthly,
-        profit: Math.round((sale - expenses - fixedMonthly) * 100) / 100,
-        days: rows.length,
-        shortDays,
-        surplusDays,
+        sale: r2(sale),
+        pandaCommission: r2(pandaComm),
+        expenses: r2(expenses),
+        establishment: monthEstablishment,
+        totalCost: monthTotalCost,
+        profit: r2(sale - monthTotalCost),
+        days, shortDays, surplusDays,
       },
-      fixedMonthly,
     };
   });
 }
