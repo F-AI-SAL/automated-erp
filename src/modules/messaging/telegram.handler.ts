@@ -104,7 +104,7 @@ async function handlePhoto(
     "✅ <b>Daily closing recorded!</b>",
     `💰 Sale: <b>${bdt(r.saleTotal)}</b>  (Cash ${bdt(r.saleCash)} · Card ${bdt(r.saleCard)} · bKash ${bdt(r.saleBkash)} · Due ${bdt(r.saleDue)})`,
     `🛒 Expenses: ${bdt(r.expensesTotal)}  (${r.expenseCount} items)`,
-    `🏦 Opening ${bdt(r.openingCash)} · Cash in hand ${bdt(r.cashInHand)}`,
+    `🏦 Opening ${bdt(r.openingCash)} · Add cash ${bdt(r.addedCash)} · Cash in hand ${bdt(r.cashInHand)}`,
     `🧮 Expected ${bdt(r.expectedCash)} → ${shortLine}`,
     r.statedShortage ? `📝 Sheet says short: ${bdt(r.statedShortage)}` : "",
     `🤖 confidence ${(r.confidence * 100).toFixed(0)}%`,
@@ -153,7 +153,7 @@ async function handleClosingText(chatId: string, text: string): Promise<void> {
     "✅ <b>Daily closing recorded!</b> (typed — 100% accurate)",
     `💰 Sale: <b>${bdt(data.saleTotal)}</b>  (Cash ${bdt(rec.saleCash)} · Card ${bdt(data.saleCard)} · bKash ${bdt(data.saleBkash)} · Due ${bdt(data.saleDue)})`,
     `🛒 Expenses: ${bdt(rec.expensesTotal)}  (${data.expenses.length} items)`,
-    `🏦 Opening ${bdt(data.openingCash)} · Cash in hand ${bdt(data.cashInHand)}`,
+    `🏦 Opening ${bdt(data.openingCash)} · Add cash ${bdt(data.addedCash)} · Cash in hand ${bdt(data.cashInHand)}`,
     `🧮 Expected ${bdt(rec.expectedCash)} → ${shortLine}`,
   ];
   await sendMessage(chatId, lines.join("\n"));

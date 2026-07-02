@@ -23,16 +23,18 @@ async function main() {
     saleBkash: 500,
     saleDue: 500,
     openingCash: 1000,
-    cashInHand: 2900,
+    addedCash: 500,
+    cashInHand: 3400,
     expenses: [
       { name: "Bazar", amount: 800 },
       { name: "Rent", amount: 200 },
     ],
   };
   const r = computeReconciliation(data);
+  // expected = opening 1000 + added 500 + cashSale 3000 − expenses 1000 = 3500
   assert(r.saleCash === 3000, `saleCash should be 3000, got ${r.saleCash}`);
   assert(r.expensesTotal === 1000, `expensesTotal should be 1000, got ${r.expensesTotal}`);
-  assert(r.expectedCash === 3000, `expectedCash should be 3000, got ${r.expectedCash}`);
+  assert(r.expectedCash === 3500, `expectedCash should be 3500, got ${r.expectedCash}`);
   assert(r.shortage === 100, `shortage should be 100, got ${r.shortage}`);
   assert(r.status === "short", `status should be short, got ${r.status}`);
 
