@@ -99,6 +99,9 @@ jobs:
       - name: Daily-closing test — reconciliation + persistence + idempotency
         run: npm run test:daily
 
+      - name: Fixed-cost test — add/upsert/total/remove
+        run: npm run test:fixed
+
       - name: Parser test — structured /closing text (100% accurate path)
         run: npm run test:parser
 
