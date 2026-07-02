@@ -8,6 +8,7 @@ import { getBranchByTelegramChat, linkTelegramChat } from "./link.service";
 import { ingestDailyClosing } from "./daily-ingest.service";
 import { parseClosingText, CLOSING_TEMPLATE } from "./closing-parser";
 import { recordDailyClosing } from "@/modules/finance/daily-closing.service";
+import { addFixedCost, listFixedCosts, removeFixedCost } from "@/modules/finance/fixed-cost.service";
 
 const bdt = (n: number) => `৳${n.toLocaleString("en-US")}`;
 
@@ -17,7 +18,7 @@ const WELCOME =
   "• <b>Type it</b> (100% accurate) — send <code>/format</code> to get the template\n" +
   "• <b>Photo</b> — snap your sheet, I'll read it (best-effort)\n\n" +
   "First link this chat:\n<code>/link YOUR-CODE</code>\n\n" +
-  "Commands: /format · /profit";
+  "Commands: /format · /fixed · /profit";
 
 /**
  * Single entry point for a Telegram update — used by both the webhook route and
@@ -43,6 +44,8 @@ export async function handleUpdate(update: TelegramUpdate): Promise<void> {
       );
     } else if (/^\/(closing|entry)\b/i.test(msg.text ?? "")) {
       await handleClosingText(chatId, msg.text!);
+    } else if (msg.text?.startsWith("/fixed")) {
+      await handleFixed(chatId, msg.text);
     } else if (msg.text === "/profit" || /লাভ|profit/i.test(msg.text ?? "")) {
       await handleProfit(chatId);
     } else {
@@ -155,6 +158,59 @@ async function handleClosingText(chatId: string, text: string): Promise<void> {
     `🛒 Expenses: ${bdt(rec.expensesTotal)}  (${data.expenses.length} items)`,
     `🏦 Opening ${bdt(data.openingCash)} · Add cash ${bdt(data.addedCash)} · Cash in hand ${bdt(data.cashInHand)}`,
     `🧮 Expected ${bdt(rec.expectedCash)} → ${shortLine}`,
+  ];
+  await sendMessage(chatId, lines.join("\n"));
+}
+
+/**
+ * /fixed              → list monthly fixed costs + total
+ * /fixed add <name> <amount>  → add/update
+ * /fixed rm <name>    → remove
+ */
+async function handleFixed(chatId: string, text: string): Promise<void> {
+  const branch = await getBranchByTelegramChat(chatId);
+  if (!branch) {
+    await sendMessage(chatId, "This chat isn't linked yet. Use <code>/link YOUR-CODE</code> first.");
+    return;
+  }
+  const rest = text.replace(/^\/fixed\b/i, "").trim();
+  const addM = rest.match(/^add\s+(.+?)\s+(-?[\d.,]+)$/i);
+  const rmM = rest.match(/^(?:rm|remove|delete)\s+(.+)$/i);
+
+  if (addM) {
+    const name = addM[1]!.trim();
+    const amount = parseFloat(addM[2]!.replace(/,/g, ""));
+    await addFixedCost(branch.company_id, branch.id, name, amount);
+    await sendMessage(chatId, `✅ Fixed cost set: <b>${name}</b> = ${bdt(amount)}/month`);
+    return;
+  }
+  if (rmM) {
+    const ok = await removeFixedCost(branch.company_id, branch.id, rmM[1]!.trim());
+    await sendMessage(chatId, ok ? `🗑️ Removed <b>${rmM[1]!.trim()}</b>` : "❌ No fixed cost with that name.");
+    return;
+  }
+  if (rest && rest.toLowerCase() !== "list") {
+    await sendMessage(
+      chatId,
+      "Usage:\n<code>/fixed</code> — list\n<code>/fixed add Shop Rent 15000</code>\n<code>/fixed rm Shop Rent</code>",
+    );
+    return;
+  }
+
+  const { items, monthlyTotal } = await listFixedCosts(branch.company_id, branch.id);
+  if (items.length === 0) {
+    await sendMessage(
+      chatId,
+      "No fixed costs yet.\nAdd one: <code>/fixed add Shop Rent 15000</code>",
+    );
+    return;
+  }
+  const perDay = Math.round(monthlyTotal / 30);
+  const lines = [
+    `🏦 <b>Fixed costs</b> — ${branch.name} (monthly)`,
+    ...items.map((i) => `• ${i.name}: ${bdt(Number(i.monthly_amount))}`),
+    "──────────",
+    `Total: <b>${bdt(monthlyTotal)}</b>/month  (~${bdt(perDay)}/day)`,
   ];
   await sendMessage(chatId, lines.join("\n"));
 }
