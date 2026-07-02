@@ -111,6 +111,9 @@ jobs:
       - name: Expenses test — category breakdown
         run: npm run test:expenses
 
+      - name: Withdrawal test — per-person owner drawings
+        run: npm run test:withdrawal
+
       - name: Category test — expense category normalization
         run: npm run test:category
 
