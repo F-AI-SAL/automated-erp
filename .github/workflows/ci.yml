@@ -111,6 +111,9 @@ jobs:
       - name: Expenses test — category breakdown
         run: npm run test:expenses
 
+      - name: Category test — expense category normalization
+        run: npm run test:category
+
       - name: Parser test — structured /closing text (100% accurate path)
         run: npm run test:parser
 

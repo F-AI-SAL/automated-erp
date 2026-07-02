@@ -29,8 +29,8 @@ async function main() {
   const { items, total } = await getExpenseBreakdown(c, b);
   assert(total === 5500, `total 5500, got ${total}`);
   // biggest-first: chicken 3000, gas 1500, vegetable 1000
-  assert(items[0]!.name === "chicken" && items[0]!.total === 3000, `top chicken 3000, got ${items[0]!.name} ${items[0]!.total}`);
-  const veg = items.find((i) => i.name === "vegetable");
+  assert(items[0]!.name === "Chicken" && items[0]!.total === 3000, `top Chicken 3000, got ${items[0]!.name} ${items[0]!.total}`);
+  const veg = items.find((i) => i.name === "Vegetable");
   assert(veg?.total === 1000, `vegetable merged to 1000, got ${veg?.total}`);
   assert(items.length === 3, `3 categories, got ${items.length}`);
 
