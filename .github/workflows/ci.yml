@@ -90,6 +90,9 @@ jobs:
       - name: Apply migrations to real Postgres
         run: npm run db:migrate
 
+      - name: Core test — auth (register/login/refresh) + JWT + RBAC + branch CRUD
+        run: npm run test:core
+
       - name: Smoke test — sale → stock → P&L + idempotency + RLS isolation
         run: npm run test:smoke
 
