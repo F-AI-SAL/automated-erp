@@ -99,6 +99,9 @@ jobs:
       - name: Daily-closing test — reconciliation + persistence + idempotency
         run: npm run test:daily
 
+      - name: Parser test — structured /closing text (100% accurate path)
+        run: npm run test:parser
+
       - name: Smoke test — sale → stock → P&L + idempotency + RLS isolation
         run: npm run test:smoke
 

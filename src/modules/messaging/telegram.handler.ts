@@ -6,14 +6,18 @@ import {
 } from "./telegram.service";
 import { getBranchByTelegramChat, linkTelegramChat } from "./link.service";
 import { ingestDailyClosing } from "./daily-ingest.service";
+import { parseClosingText, CLOSING_TEMPLATE } from "./closing-parser";
+import { recordDailyClosing } from "@/modules/finance/daily-closing.service";
 
 const bdt = (n: number) => `৳${n.toLocaleString("en-US")}`;
 
 const WELCOME =
   "👋 <b>Food Engineering ERP</b>\n\n" +
-  "Send a photo of your daily sell-sheet and I'll record the sales and reply with today's profit.\n\n" +
-  "First, link this chat to your branch:\n<code>/link YOUR-CODE</code>\n(find the code in your dashboard)\n\n" +
-  "Commands: /profit — today's profit";
+  "Record your daily cash closing two ways:\n" +
+  "• <b>Type it</b> (100% accurate) — send <code>/format</code> to get the template\n" +
+  "• <b>Photo</b> — snap your sheet, I'll read it (best-effort)\n\n" +
+  "First link this chat:\n<code>/link YOUR-CODE</code>\n\n" +
+  "Commands: /format · /profit";
 
 /**
  * Single entry point for a Telegram update — used by both the webhook route and
@@ -29,6 +33,10 @@ export async function handleUpdate(update: TelegramUpdate): Promise<void> {
       await handlePhoto(chatId, msg.photo);
     } else if (msg.text?.startsWith("/link ")) {
       await handleLink(chatId, msg.text.slice(6));
+    } else if (msg.text === "/format") {
+      await sendMessage(chatId, `Copy this, fill your numbers, and send it back:\n\n<code>${CLOSING_TEMPLATE}</code>`);
+    } else if (/^\/(closing|entry)\b/i.test(msg.text ?? "")) {
+      await handleClosingText(chatId, msg.text!);
     } else if (msg.text === "/profit" || /লাভ|profit/i.test(msg.text ?? "")) {
       await handleProfit(chatId);
     } else {
@@ -95,6 +103,53 @@ async function handlePhoto(
     r.statedShortage ? `📝 Sheet says short: ${bdt(r.statedShortage)}` : "",
     `🤖 confidence ${(r.confidence * 100).toFixed(0)}%`,
   ].filter(Boolean);
+  await sendMessage(chatId, lines.join("\n"));
+}
+
+async function handleClosingText(chatId: string, text: string): Promise<void> {
+  const branch = await getBranchByTelegramChat(chatId);
+  if (!branch) {
+    await sendMessage(chatId, "This chat isn't linked yet. Use <code>/link YOUR-CODE</code> first.");
+    return;
+  }
+
+  const data = parseClosingText(text);
+  if (data.saleTotal === 0 && data.cashInHand === 0 && data.expenses.length === 0) {
+    await sendMessage(chatId, "⚠️ I couldn't read any numbers. Send <code>/format</code> for the template.");
+    return;
+  }
+
+  // Idempotent on the exact content — resending the same text won't double-record.
+  const { createHash } = await import("node:crypto");
+  const sourceHash = `entry-${createHash("sha1").update(text.trim()).digest("hex").slice(0, 16)}`;
+
+  const rec = await recordDailyClosing({
+    companyId: branch.company_id,
+    branchId: branch.id,
+    data,
+    source: "manual",
+    sourceHash,
+  });
+
+  if (rec.duplicate) {
+    await sendMessage(chatId, "✅ This entry was already recorded.");
+    return;
+  }
+
+  const shortLine =
+    rec.status === "short"
+      ? `⚠️ <b>Short: ${bdt(rec.shortage)}</b>`
+      : rec.status === "surplus"
+        ? `💚 Surplus: ${bdt(-rec.shortage)}`
+        : "✅ Cash matched";
+
+  const lines = [
+    "✅ <b>Daily closing recorded!</b> (typed — 100% accurate)",
+    `💰 Sale: <b>${bdt(data.saleTotal)}</b>  (Cash ${bdt(rec.saleCash)} · Card ${bdt(data.saleCard)} · bKash ${bdt(data.saleBkash)} · Due ${bdt(data.saleDue)})`,
+    `🛒 Expenses: ${bdt(rec.expensesTotal)}  (${data.expenses.length} items)`,
+    `🏦 Opening ${bdt(data.openingCash)} · Cash in hand ${bdt(data.cashInHand)}`,
+    `🧮 Expected ${bdt(rec.expectedCash)} → ${shortLine}`,
+  ];
   await sendMessage(chatId, lines.join("\n"));
 }
 
