@@ -11,7 +11,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- Applied per-table below (USING also acts as WITH CHECK on INSERT).
 
 -- ─── Tenancy & Access ───────────────────────────────────────────────────────
-CREATE TABLE companies (
+CREATE TABLE IF NOT EXISTS companies (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name       text NOT NULL,
   slug       text NOT NULL UNIQUE,
@@ -23,7 +23,7 @@ CREATE TABLE companies (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE TABLE branches (
+CREATE TABLE IF NOT EXISTS branches (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name       text NOT NULL,
@@ -33,28 +33,28 @@ CREATE TABLE branches (
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_branches_company ON branches(company_id);
+CREATE INDEX IF NOT EXISTS idx_branches_company ON branches(company_id);
 
-CREATE TABLE roles (
+CREATE TABLE IF NOT EXISTS roles (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name       text NOT NULL,
   UNIQUE (company_id, name)
 );
 
-CREATE TABLE permissions (
+CREATE TABLE IF NOT EXISTS permissions (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   key         text NOT NULL UNIQUE,
   description text
 );
 
-CREATE TABLE role_permissions (
+CREATE TABLE IF NOT EXISTS role_permissions (
   role_id       uuid NOT NULL REFERENCES roles(id) ON DELETE CASCADE,
   permission_id uuid NOT NULL REFERENCES permissions(id) ON DELETE CASCADE,
   PRIMARY KEY (role_id, permission_id)
 );
 
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id    uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   branch_id     uuid REFERENCES branches(id) ON DELETE SET NULL,
@@ -66,10 +66,10 @@ CREATE TABLE users (
   updated_at    timestamptz NOT NULL DEFAULT now(),
   UNIQUE (company_id, email)
 );
-CREATE INDEX idx_users_company ON users(company_id);
+CREATE INDEX IF NOT EXISTS idx_users_company ON users(company_id);
 
 -- ─── Menu, Materials, Recipes ───────────────────────────────────────────────
-CREATE TABLE products (
+CREATE TABLE IF NOT EXISTS products (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id   uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   category     text,
@@ -82,9 +82,9 @@ CREATE TABLE products (
   created_at   timestamptz NOT NULL DEFAULT now(),
   updated_at   timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_products_company_cat ON products(company_id, category);
+CREATE INDEX IF NOT EXISTS idx_products_company_cat ON products(company_id, category);
 
-CREATE TABLE raw_materials (
+CREATE TABLE IF NOT EXISTS raw_materials (
   id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id    uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name          text NOT NULL,
@@ -94,9 +94,9 @@ CREATE TABLE raw_materials (
   created_at    timestamptz NOT NULL DEFAULT now(),
   updated_at    timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_raw_materials_company ON raw_materials(company_id);
+CREATE INDEX IF NOT EXISTS idx_raw_materials_company ON raw_materials(company_id);
 
-CREATE TABLE recipes (
+CREATE TABLE IF NOT EXISTS recipes (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id      uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   product_id      uuid NOT NULL REFERENCES products(id) ON DELETE CASCADE,
@@ -105,9 +105,9 @@ CREATE TABLE recipes (
   unit            text NOT NULL DEFAULT 'g',
   UNIQUE (product_id, raw_material_id)
 );
-CREATE INDEX idx_recipes_product ON recipes(product_id);
+CREATE INDEX IF NOT EXISTS idx_recipes_product ON recipes(product_id);
 
-CREATE TABLE suppliers (
+CREATE TABLE IF NOT EXISTS suppliers (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id      uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name            text NOT NULL,
@@ -115,10 +115,10 @@ CREATE TABLE suppliers (
   opening_balance numeric(14,2) NOT NULL DEFAULT 0,
   created_at      timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_suppliers_company ON suppliers(company_id);
+CREATE INDEX IF NOT EXISTS idx_suppliers_company ON suppliers(company_id);
 
 -- ─── Sales ──────────────────────────────────────────────────────────────────
-CREATE TABLE sales (
+CREATE TABLE IF NOT EXISTS sales (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id  uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   branch_id   uuid NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
@@ -133,9 +133,9 @@ CREATE TABLE sales (
   -- idempotency: a re-sent sell-sheet cannot double-post (see sales.service.ts)
   UNIQUE (branch_id, source_hash)
 );
-CREATE INDEX idx_sales_scope_date ON sales(company_id, branch_id, sale_date);
+CREATE INDEX IF NOT EXISTS idx_sales_scope_date ON sales(company_id, branch_id, sale_date);
 
-CREATE TABLE sale_items (
+CREATE TABLE IF NOT EXISTS sale_items (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   sale_id    uuid NOT NULL REFERENCES sales(id) ON DELETE CASCADE,
   product_id uuid NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
@@ -144,10 +144,10 @@ CREATE TABLE sale_items (
   discount   numeric(12,2) NOT NULL DEFAULT 0,
   line_total numeric(14,2) NOT NULL
 );
-CREATE INDEX idx_sale_items_sale ON sale_items(sale_id);
+CREATE INDEX IF NOT EXISTS idx_sale_items_sale ON sale_items(sale_id);
 
 -- ─── Purchasing & Stock ─────────────────────────────────────────────────────
-CREATE TABLE purchase_orders (
+CREATE TABLE IF NOT EXISTS purchase_orders (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id  uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   branch_id   uuid NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
@@ -158,9 +158,9 @@ CREATE TABLE purchase_orders (
   status      text NOT NULL DEFAULT 'received',
   created_at  timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_po_company_date ON purchase_orders(company_id, po_date);
+CREATE INDEX IF NOT EXISTS idx_po_company_date ON purchase_orders(company_id, po_date);
 
-CREATE TABLE purchase_items (
+CREATE TABLE IF NOT EXISTS purchase_items (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   po_id           uuid NOT NULL REFERENCES purchase_orders(id) ON DELETE CASCADE,
   raw_material_id uuid NOT NULL REFERENCES raw_materials(id) ON DELETE RESTRICT,
@@ -168,9 +168,9 @@ CREATE TABLE purchase_items (
   unit_cost       numeric(12,4) NOT NULL,
   line_total      numeric(14,2) NOT NULL
 );
-CREATE INDEX idx_purchase_items_po ON purchase_items(po_id);
+CREATE INDEX IF NOT EXISTS idx_purchase_items_po ON purchase_items(po_id);
 
-CREATE TABLE stock (
+CREATE TABLE IF NOT EXISTS stock (
   id               uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id       uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   branch_id        uuid NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
@@ -179,9 +179,9 @@ CREATE TABLE stock (
   updated_at       timestamptz NOT NULL DEFAULT now(),
   UNIQUE (branch_id, raw_material_id)
 );
-CREATE INDEX idx_stock_scope ON stock(company_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_stock_scope ON stock(company_id, branch_id);
 
-CREATE TABLE stock_movements (
+CREATE TABLE IF NOT EXISTS stock_movements (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id      uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   branch_id       uuid NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
@@ -192,17 +192,17 @@ CREATE TABLE stock_movements (
   ref_id          uuid,
   created_at      timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_stock_moves ON stock_movements(branch_id, raw_material_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_stock_moves ON stock_movements(branch_id, raw_material_id, created_at);
 
 -- ─── Finance & People ───────────────────────────────────────────────────────
-CREATE TABLE expense_categories (
+CREATE TABLE IF NOT EXISTS expense_categories (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   name       text NOT NULL,
   UNIQUE (company_id, name)
 );
 
-CREATE TABLE expenses (
+CREATE TABLE IF NOT EXISTS expenses (
   id           uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id   uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   branch_id    uuid NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
@@ -212,9 +212,9 @@ CREATE TABLE expenses (
   is_recurring boolean NOT NULL DEFAULT false,
   created_at   timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_expenses_scope_date ON expenses(company_id, branch_id, expense_date);
+CREATE INDEX IF NOT EXISTS idx_expenses_scope_date ON expenses(company_id, branch_id, expense_date);
 
-CREATE TABLE employees (
+CREATE TABLE IF NOT EXISTS employees (
   id             uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id     uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   branch_id      uuid REFERENCES branches(id) ON DELETE SET NULL,
@@ -224,9 +224,9 @@ CREATE TABLE employees (
   join_date      date,
   created_at     timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_employees_scope ON employees(company_id, branch_id);
+CREATE INDEX IF NOT EXISTS idx_employees_scope ON employees(company_id, branch_id);
 
-CREATE TABLE salaries (
+CREATE TABLE IF NOT EXISTS salaries (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   employee_id uuid NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
@@ -240,7 +240,7 @@ CREATE TABLE salaries (
   UNIQUE (employee_id, month)
 );
 
-CREATE TABLE profit_loss (
+CREATE TABLE IF NOT EXISTS profit_loss (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   branch_id  uuid NOT NULL REFERENCES branches(id) ON DELETE CASCADE,
@@ -254,7 +254,7 @@ CREATE TABLE profit_loss (
 );
 
 -- ─── SaaS, AI, Audit ────────────────────────────────────────────────────────
-CREATE TABLE plans (
+CREATE TABLE IF NOT EXISTS plans (
   id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   name        text NOT NULL,
   price_month numeric(10,2) NOT NULL DEFAULT 0,
@@ -262,7 +262,7 @@ CREATE TABLE plans (
   limits      jsonb NOT NULL DEFAULT '{}'::jsonb
 );
 
-CREATE TABLE subscriptions (
+CREATE TABLE IF NOT EXISTS subscriptions (
   id                 uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id         uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   plan_id            uuid REFERENCES plans(id) ON DELETE SET NULL,
@@ -271,9 +271,9 @@ CREATE TABLE subscriptions (
   current_period_end timestamptz,
   created_at         timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_subscriptions_company ON subscriptions(company_id);
+CREATE INDEX IF NOT EXISTS idx_subscriptions_company ON subscriptions(company_id);
 
-CREATE TABLE payments (
+CREATE TABLE IF NOT EXISTS payments (
   id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id      uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   subscription_id uuid REFERENCES subscriptions(id) ON DELETE SET NULL,
@@ -283,9 +283,9 @@ CREATE TABLE payments (
   txn_ref         text,
   created_at      timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_payments_subscription ON payments(subscription_id);
+CREATE INDEX IF NOT EXISTS idx_payments_subscription ON payments(subscription_id);
 
-CREATE TABLE notifications (
+CREATE TABLE IF NOT EXISTS notifications (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   channel    text NOT NULL,
@@ -294,9 +294,9 @@ CREATE TABLE notifications (
   status     text NOT NULL DEFAULT 'pending',
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_notifications_company ON notifications(company_id, status);
+CREATE INDEX IF NOT EXISTS idx_notifications_company ON notifications(company_id, status);
 
-CREATE TABLE ai_logs (
+CREATE TABLE IF NOT EXISTS ai_logs (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   source_msg text,
@@ -308,9 +308,9 @@ CREATE TABLE ai_logs (
   cost       numeric(10,4),
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_ai_logs_company ON ai_logs(company_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_ai_logs_company ON ai_logs(company_id, created_at);
 
-CREATE TABLE audit_logs (
+CREATE TABLE IF NOT EXISTS audit_logs (
   id         uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   company_id uuid NOT NULL REFERENCES companies(id) ON DELETE CASCADE,
   user_id    uuid,
@@ -321,9 +321,10 @@ CREATE TABLE audit_logs (
   after      jsonb,
   created_at timestamptz NOT NULL DEFAULT now()
 );
-CREATE INDEX idx_audit_scope ON audit_logs(company_id, entity, created_at);
+CREATE INDEX IF NOT EXISTS idx_audit_scope ON audit_logs(company_id, entity, created_at);
 
 -- FK deferred from companies → plans (plans created above; add now).
+ALTER TABLE companies DROP CONSTRAINT IF EXISTS fk_companies_plan;
 ALTER TABLE companies
   ADD CONSTRAINT fk_companies_plan FOREIGN KEY (plan_id) REFERENCES plans(id) ON DELETE SET NULL;
 
@@ -344,6 +345,7 @@ BEGIN
     EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY;', t);
     -- Tables that carry company_id directly:
     IF t NOT IN ('role_permissions','sale_items','purchase_items') THEN
+      EXECUTE format('DROP POLICY IF EXISTS %1$s_tenant ON %1$s;', t);
       EXECUTE format(
         'CREATE POLICY %1$s_tenant ON %1$s
            USING (company_id = current_setting(''app.current_company'', true)::uuid);', t);
@@ -352,16 +354,19 @@ BEGIN
 END $$;
 
 -- Child tables without company_id inherit isolation via their parent FK.
+DROP POLICY IF EXISTS sale_items_tenant ON sale_items;
 CREATE POLICY sale_items_tenant ON sale_items
   USING (EXISTS (SELECT 1 FROM sales s
                   WHERE s.id = sale_items.sale_id
                     AND s.company_id = current_setting('app.current_company', true)::uuid));
 
+DROP POLICY IF EXISTS purchase_items_tenant ON purchase_items;
 CREATE POLICY purchase_items_tenant ON purchase_items
   USING (EXISTS (SELECT 1 FROM purchase_orders p
                   WHERE p.id = purchase_items.po_id
                     AND p.company_id = current_setting('app.current_company', true)::uuid));
 
+DROP POLICY IF EXISTS role_permissions_tenant ON role_permissions;
 CREATE POLICY role_permissions_tenant ON role_permissions
   USING (EXISTS (SELECT 1 FROM roles r
                   WHERE r.id = role_permissions.role_id
