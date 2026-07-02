@@ -200,6 +200,8 @@ Branch protection on `main`: required checks = **CI Gate** + **Analyze (JS/TS)**
 > ⚠️ Gotcha solved: Windows-generated lockfiles break Linux `npm ci` (platform-specific esbuild/picomatch). Fix = the `sync-lockfile` workflow; run it after any dependency change made on Windows.
 > 🔸 Minor: workflows warn "Node 20 deprecated" — bump `actions/*` + CodeQL to v4 later (non-blocking until Dec 2026).
 
+> ✅ Deprecation warnings resolved: actions bumped (checkout v7, setup-node v6, codeql v4). Dependabot now ignores **all npm majors** — majors are adopted deliberately, minor/patch flow automatically.
+
 ## 📌 Working Rules
 
 1. **One event = one handler = one job.** Modules talk only via `EventBus` — never direct coupling.
