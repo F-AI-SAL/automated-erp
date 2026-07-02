@@ -18,6 +18,7 @@ const schema = z.object({
 
   OPENAI_API_KEY: z.string().optional(),
   ANTHROPIC_API_KEY: z.string().optional(),
+  AI_MODEL: z.string().optional(), // OCR model; default claude-opus-4-8 (see ocr.service.ts)
 
   WHATSAPP_TOKEN: z.string().optional(),
   WHATSAPP_PHONE_NUMBER_ID: z.string().optional(),
