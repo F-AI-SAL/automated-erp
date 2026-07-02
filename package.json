@@ -18,6 +18,7 @@
     "test:fixed": "tsx --env-file-if-exists=.env scripts/fixed-test.ts",
     "test:report": "tsx --env-file-if-exists=.env scripts/report-test.ts",
     "test:branch": "tsx --env-file-if-exists=.env scripts/branch-test.ts",
+    "test:expenses": "tsx --env-file-if-exists=.env scripts/expenses-test.ts",
     "test:parser": "tsx scripts/parser-test.ts",
     "test:ocr": "tsx --env-file-if-exists=.env scripts/ocr-test.ts",
     "telegram:poll": "tsx --env-file-if-exists=.env scripts/telegram-poll.ts"
