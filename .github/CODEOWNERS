@@ -1,0 +1,7 @@
+# Default owner for everything — every PR requests review from @F-AI-SAL.
+* @F-AI-SAL
+
+# Critical areas (kept explicit so ownership survives future contributors).
+/db/                    @F-AI-SAL
+/src/lib/eventbus/      @F-AI-SAL
+/.github/               @F-AI-SAL
