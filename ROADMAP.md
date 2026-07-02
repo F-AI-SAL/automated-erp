@@ -13,7 +13,7 @@
 | Phase | Scope | Timeline | Payment | Status |
 |-------|-------|----------|---------|--------|
 | Pre-Flight | Accounts + infra setup | Day 0 | — | ⬜ not started |
-| Phase 0 | Foundation + Event Backbone | Week 1–2 | 20% | 🟡 in progress (event backbone + core auth/RBAC done; audit-writer left) |
+| Phase 0 | Foundation + Event Backbone | Week 1–2 | 20% | ✅ **complete** (event backbone + core auth/RBAC + audit) |
 | Phase 1 | Core MVP (wow-loop) | Week 3–6 | 35% | ⬜ not started |
 | Phase 2 | Financial Depth | Week 7–9 | 20% | ⬜ not started |
 | Phase 3 | People & SaaS | Week 10–13 | 15% | ⬜ not started |
@@ -59,7 +59,7 @@ Accounts + tools ready করো:
 - [x] Auth: register/login, JWT + refresh, RBAC middleware — HS256 JWT + scrypt, `node:crypto` only (PR #11)
 - [x] Seed 8 roles (Owner, Manager, Accountant, Cashier, Kitchen, Inventory, Staff, Viewer) + RBAC matrix
 - [x] Company + Branch CRUD (RLS-scoped) — API routes + services _(branch switcher = UI, later)_
-- [ ] Audit-log writer (every mutation)
+- [x] Audit-log writer (every mutation) — `writeAudit()` wired into register/login/branch (PR #12)
 
 **DoD:** create a company → RLS isolates its data; publish a test event → dispatcher processes it → row in `audit_logs`. Live staging URL. ✅
 **Deliverable:** PRD PDF + ER diagram + deployed skeleton → **Payment 20%**
@@ -202,6 +202,7 @@ Branch protection on `main`: required checks = **CI Gate** + **Analyze (JS/TS)**
 
 > ✅ Deprecation warnings resolved: actions bumped (checkout v7, setup-node v6, codeql v4). Dependabot now ignores **all npm majors** — majors are adopted deliberately, minor/patch flow automatically.
 
+- **2026-07-02 (Phase 0 ✅)** — Audit-log writer merged (**PR #12**): `writeAudit()` atomic-with-mutation, wired into register/login/branch, CI core-test asserts the rows. **Phase 0 fully complete** — foundation, event backbone, core auth/RBAC, audit all done + CI-verified. Next: Phase 1 MVP (Products/Recipes → manual Sales → wow-loop; WhatsApp/AI once Pre-Flight accounts exist).
 - **2026-07-02 (core module)** — First feature via the protected PR flow (**PR #11**, feat/core-auth-rbac → squash-merge). Built **auth** (register/login/refresh, HS256 JWT + scrypt, **zero new deps** — `node:crypto`), **RBAC** (8-role matrix + `requirePermission`), **company/branch CRUD** (RLS), API routes (`/api/auth/*`, `/api/branches`). New **core-test** runs in CI on real Postgres (register/login/refresh + JWT + RBAC + branch CRUD — all ✅). All 5 required checks green; branch protection verified working. Left in Phase 0: audit-log writer.
 
 ## 📌 Working Rules
