@@ -9,6 +9,7 @@ import { ingestDailyClosing } from "./daily-ingest.service";
 import { parseClosingText, CLOSING_TEMPLATE } from "./closing-parser";
 import { recordDailyClosing } from "@/modules/finance/daily-closing.service";
 import { addFixedCost, listFixedCosts, removeFixedCost } from "@/modules/finance/fixed-cost.service";
+import { getBranchReport } from "@/modules/finance/report.service";
 
 const bdt = (n: number) => `৳${n.toLocaleString("en-US")}`;
 
@@ -18,7 +19,7 @@ const WELCOME =
   "• <b>Type it</b> (100% accurate) — send <code>/format</code> to get the template\n" +
   "• <b>Photo</b> — snap your sheet, I'll read it (best-effort)\n\n" +
   "First link this chat:\n<code>/link YOUR-CODE</code>\n\n" +
-  "Commands: /format · /fixed · /profit";
+  "Commands: /format · /fixed · /report";
 
 /**
  * Single entry point for a Telegram update — used by both the webhook route and
@@ -46,7 +47,9 @@ export async function handleUpdate(update: TelegramUpdate): Promise<void> {
       await handleClosingText(chatId, msg.text!);
     } else if (msg.text?.startsWith("/fixed")) {
       await handleFixed(chatId, msg.text);
-    } else if (msg.text === "/profit" || /লাভ|profit/i.test(msg.text ?? "")) {
+    } else if (msg.text === "/report" || /report|রিপোর্ট|লাভ/i.test(msg.text ?? "")) {
+      await handleReport(chatId);
+    } else if (msg.text === "/profit" || /profit/i.test(msg.text ?? "")) {
       await handleProfit(chatId);
     } else {
       await sendMessage(chatId, WELCOME);
@@ -222,6 +225,38 @@ async function handleFixed(chatId: string, text: string): Promise<void> {
     ...items.map((i) => `• ${i.name}: ${bdt(Number(i.monthly_amount))}`),
     "──────────",
     `Total: <b>${bdt(monthlyTotal)}</b>/month  (~${bdt(perDay)}/day)`,
+  ];
+  await sendMessage(chatId, lines.join("\n"));
+}
+
+async function handleReport(chatId: string): Promise<void> {
+  const branch = await getBranchByTelegramChat(chatId);
+  if (!branch) {
+    await sendMessage(chatId, "This chat isn't linked yet. Use <code>/link YOUR-CODE</code> first.");
+    return;
+  }
+  const rep = await getBranchReport(branch.company_id, branch.id);
+  if (!rep.hasData) {
+    await sendMessage(chatId, "No daily closings recorded yet. Send one first (/format).");
+    return;
+  }
+  const L = rep.latest!;
+  const M = rep.month;
+  const cash =
+    L.status === "short" ? `⚠️ Short ${bdt(L.shortage)}` : L.status === "surplus" ? `💚 Beshi ${bdt(-L.shortage)}` : "✅ Matched";
+  const monthNet = M.profit >= 0 ? `<b>${bdt(M.profit)}</b> 🟢` : `<b>${bdt(M.profit)}</b> 🔴`;
+  const dayNet = L.net >= 0 ? `<b>${bdt(L.net)}</b>` : `<b>${bdt(L.net)}</b> 🔴`;
+
+  const lines = [
+    `📅 <b>${L.date}</b> (latest day)`,
+    `  Sale ${bdt(L.sale)} − Expenses ${bdt(L.expenses)} = Gross ${bdt(L.gross)}`,
+    `  − Fixed/day ${bdt(L.fixedPerDay)} = <b>Net ${dayNet}</b>`,
+    `  Cash: ${cash}`,
+    "",
+    `📆 <b>Month ${rep.monthLabel}</b> (${M.days} days)`,
+    `  Sale ${bdt(M.sale)} − Expenses ${bdt(M.expenses)} − Fixed ${bdt(M.fixed)}`,
+    `  = Real profit ${monthNet}`,
+    `  🗓️ ${M.surplusDays} day(s) beshi · ${M.shortDays} day(s) short`,
   ];
   await sendMessage(chatId, lines.join("\n"));
 }
