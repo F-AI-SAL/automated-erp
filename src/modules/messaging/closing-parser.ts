@@ -14,6 +14,7 @@ export function parseClosingText(text: string): DailyClosingInput {
     saleTotal: 0,
     saleCard: 0,
     saleBkash: 0,
+    salePanda: 0,
     saleDue: 0,
     openingCash: 0,
     addedCash: 0,
@@ -46,6 +47,7 @@ export function parseClosingText(text: string): DailyClosingInput {
     if (/^(sale|total|bikri|বিক্রি)$/.test(key)) out.saleTotal = amount;
     else if (/^card$/.test(key)) out.saleCard = amount;
     else if (/^(bkash|bikash|nagad|mobile)$/.test(key)) out.saleBkash = amount;
+    else if (/^(panda|foodpanda|online)$/.test(key)) out.salePanda = amount;
     else if (/^(due|baki|বাকি)$/.test(key)) out.saleDue = amount;
     else if (/^(opening|petty|openingcash|pettycash)$/.test(key)) out.openingCash = amount;
     else if (/^(addcash|addedcash|cashadd|add)$/.test(key)) out.addedCash = amount;
@@ -73,11 +75,12 @@ function normalizeDate(s: string): string {
 export const CLOSING_TEMPLATE = [
   "/closing",
   "date 01-07-2026",
-  "sale 41396",
-  "card 870",
-  "bkash 14670",
-  "due 0",
-  "opening 28330",
+  "sale 53923",
+  "card 11826",
+  "bkash 6448",
+  "panda 4159",
+  "due 672",
+  "opening 20730",
   "add cash 0",
   "cash in hand 25080",
   "vegetable 680",

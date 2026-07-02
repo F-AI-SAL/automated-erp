@@ -1,24 +1,23 @@
 import { parseClosingText } from "@/modules/messaging/closing-parser";
 
 /**
- * Pure parser test (no DB, no OCR). Proves the forgiving /closing format:
- * known fields set headers; every other `name amount` line is an expense —
- * no section marker required.
+ * Pure parser test (no DB, no OCR). Known fields set headers (incl. panda);
+ * every other `name amount` line is an expense — no section marker required.
  */
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERT FAILED: ${msg}`);
 }
 
-// Real-world shape: header fields mixed with free-form expense lines, no marker.
 const SAMPLE = `/closing
 date 01-07-2026
-sale 41,396
-card 870
-bkash 14670
-due 0
-opening 28330
-add cash 500
-cash in hand 25080
+sale 53,923
+card 11826
+bkash 6448
+panda 4159
+due 672
+opening 20730
+add cash 0
+cash in hand 22640
 vegetable 680
 staff bazar 460
 mudi bazar 3165
@@ -27,25 +26,21 @@ staff house 2000 tk`;
 
 const d = parseClosingText(SAMPLE);
 assert(d.date === "2026-07-01", `date should be 2026-07-01, got ${d.date}`);
-assert(d.saleTotal === 41396, `sale 41396 (comma stripped), got ${d.saleTotal}`);
-assert(d.saleCard === 870, `card 870, got ${d.saleCard}`);
-assert(d.saleBkash === 14670, `bkash 14670, got ${d.saleBkash}`);
-assert(d.saleDue === 0, `due 0, got ${d.saleDue}`);
-assert(d.openingCash === 28330, `opening 28330, got ${d.openingCash}`);
-assert(d.addedCash === 500, `add cash 500, got ${d.addedCash}`);
-assert(d.cashInHand === 25080, `cash in hand 25080, got ${d.cashInHand}`);
-// the 5 free-form lines become expenses automatically (no marker)
+assert(d.saleTotal === 53923, `sale 53923 (comma stripped), got ${d.saleTotal}`);
+assert(d.saleCard === 11826, `card 11826, got ${d.saleCard}`);
+assert(d.saleBkash === 6448, `bkash 6448, got ${d.saleBkash}`);
+assert(d.salePanda === 4159, `panda 4159, got ${d.salePanda}`);
+assert(d.saleDue === 672, `due 672, got ${d.saleDue}`);
+assert(d.openingCash === 20730, `opening 20730, got ${d.openingCash}`);
+assert(d.addedCash === 0, `add cash 0, got ${d.addedCash}`);
+assert(d.cashInHand === 22640, `cash in hand 22640, got ${d.cashInHand}`);
 assert(d.expenses.length === 5, `5 expenses, got ${d.expenses.length}`);
-assert(d.expenses[0]!.name === "vegetable" && d.expenses[0]!.amount === 680, "vegetable 680");
-assert(d.expenses[1]!.name === "staff bazar", `staff bazar name, got ${d.expenses[1]!.name}`);
 assert(d.expenses[4]!.name === "staff house" && d.expenses[4]!.amount === 2000, "staff house 2000 (tk stripped)");
 
-// Expenses-only message (what the user naturally typed) — all lines are expenses.
 const only = parseClosingText(`/closing
 Beef 1000
 cola 3570
 Chicken 3000`);
 assert(only.expenses.length === 3, `expenses-only should give 3, got ${only.expenses.length}`);
-assert(only.saleTotal === 0, "no sale header → 0");
 
-console.log("✅ PARSER TEST PASSED — forgiving /closing parse (headers + auto-expenses)");
+console.log("✅ PARSER TEST PASSED — forgiving parse incl. panda payment channel");

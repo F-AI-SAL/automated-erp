@@ -15,6 +15,7 @@ export const DailyClosingSchema = z.object({
   saleTotal: z.number().describe("Total sale for the day"),
   saleCard: z.number().describe("Sale received by card (0 if none)"),
   saleBkash: z.number().describe("Sale received by bKash/mobile (0 if none)"),
+  salePanda: z.number().describe("Sale via foodpanda / online (0 if none)"),
   saleDue: z.number().describe("Sale on credit / due / বাকি (0 if none)"),
   openingCash: z.number().describe("Opening or petty cash at the start of the day (0 if not shown)"),
   addedCash: z.number().describe("Extra cash added into the drawer during the day (0 if not shown)"),
@@ -33,7 +34,7 @@ const JSON_SCHEMA = {
   type: "object",
   additionalProperties: false,
   required: [
-    "date", "saleTotal", "saleCard", "saleBkash", "saleDue",
+    "date", "saleTotal", "saleCard", "saleBkash", "salePanda", "saleDue",
     "openingCash", "addedCash", "cashInHand", "expenses", "statedShortage", "confidence",
   ],
   properties: {
@@ -41,6 +42,7 @@ const JSON_SCHEMA = {
     saleTotal: { type: "number" },
     saleCard: { type: "number" },
     saleBkash: { type: "number" },
+    salePanda: { type: "number" },
     saleDue: { type: "number" },
     openingCash: { type: "number" },
     addedCash: { type: "number" },
