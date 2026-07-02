@@ -34,7 +34,13 @@ export async function handleUpdate(update: TelegramUpdate): Promise<void> {
     } else if (msg.text?.startsWith("/link ")) {
       await handleLink(chatId, msg.text.slice(6));
     } else if (msg.text === "/format") {
-      await sendMessage(chatId, `Copy this, fill your numbers, and send it back:\n\n<code>${CLOSING_TEMPLATE}</code>`);
+      await sendMessage(
+        chatId,
+        "Copy this, fill your numbers, send it back:\n\n" +
+          `<code>${CLOSING_TEMPLATE}</code>\n\n` +
+          "ℹ️ Fields <b>sale, card, bkash, due, opening, cash in hand</b> are the totals. " +
+          "Every other <code>name amount</code> line is an expense — add as many as you like.",
+      );
     } else if (/^\/(closing|entry)\b/i.test(msg.text ?? "")) {
       await handleClosingText(chatId, msg.text!);
     } else if (msg.text === "/profit" || /লাভ|profit/i.test(msg.text ?? "")) {
