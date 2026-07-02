@@ -27,7 +27,7 @@ Accounts + tools ready করো:
 
 - [ ] Hetzner VPS (CX22, 2 vCPU / 4GB) + Coolify install
 - [x] GitHub repo (private) + branch protection — `F-AI-SAL/automated-erp`, main protected (CI Gate + CodeQL required, PR + CODEOWNERS, linear history, no force-push)
-- [ ] Supabase project (Postgres + Auth + Storage)
+- [x] Supabase project (Postgres + Auth + Storage) — Singapore; DB live, migrations applied, core+sales tests pass on it _(API keys for Storage pending)_
 - [ ] Meta WhatsApp Cloud API app + test number
 - [ ] OpenAI / Claude API key
 - [ ] Sentry + PostHog projects (free tier)
@@ -202,6 +202,7 @@ Branch protection on `main`: required checks = **CI Gate** + **Analyze (JS/TS)**
 
 > ✅ Deprecation warnings resolved: actions bumped (checkout v7, setup-node v6, codeql v4). Dependabot now ignores **all npm majors** — majors are adopted deliberately, minor/patch flow automatically.
 
+- **2026-07-02 (live Supabase 🟢)** — Supabase (Singapore) connected; **PR #14**: SSL + idempotent migrations + `.env` autoload. Debugged: `.env` not auto-loaded by tsx (→ `node --env-file-if-exists`), sandbox blocks port 5432 (→ run DB cmds unsandboxed), password had a literal `@` (→ URL-encode `%40`), managed PG needs TLS, partial-apply (→ idempotent migrations). **Migrations applied + core-test + sales-test PASS on real Supabase.** App is now running on production-grade infra.
 - **2026-07-02 (Phase 1 start)** — First MVP slice merged (**PR #13**): Products/Menu create+list (`menu:manage`), manual Sales API (`/api/sales`) → `sale.posted` → stock/P&L event flow, `listSales`, audit on `postSale`. New **sales-test** in CI (real Postgres) green: product + manual sale → P&L(750) + RBAC + audit. WhatsApp/AI ingestion deferred (Pre-Flight blocked) — will reuse this same `postSale` path. Next Phase 1: Raw-material/Recipe CRUD, Purchase, Expenses, Dashboard.
 - **2026-07-02 (Phase 0 ✅)** — Audit-log writer merged (**PR #12**): `writeAudit()` atomic-with-mutation, wired into register/login/branch, CI core-test asserts the rows. **Phase 0 fully complete** — foundation, event backbone, core auth/RBAC, audit all done + CI-verified. Next: Phase 1 MVP (Products/Recipes → manual Sales → wow-loop; WhatsApp/AI once Pre-Flight accounts exist).
 - **2026-07-02 (core module)** — First feature via the protected PR flow (**PR #11**, feat/core-auth-rbac → squash-merge). Built **auth** (register/login/refresh, HS256 JWT + scrypt, **zero new deps** — `node:crypto`), **RBAC** (8-role matrix + `requirePermission`), **company/branch CRUD** (RLS), API routes (`/api/auth/*`, `/api/branches`). New **core-test** runs in CI on real Postgres (register/login/refresh + JWT + RBAC + branch CRUD — all ✅). All 5 required checks green; branch protection verified working. Left in Phase 0: audit-log writer.
