@@ -19,6 +19,7 @@
     "test:report": "tsx --env-file-if-exists=.env scripts/report-test.ts",
     "test:branch": "tsx --env-file-if-exists=.env scripts/branch-test.ts",
     "test:expenses": "tsx --env-file-if-exists=.env scripts/expenses-test.ts",
+    "test:withdrawal": "tsx --env-file-if-exists=.env scripts/withdrawal-test.ts",
     "test:category": "tsx scripts/category-test.ts",
     "test:parser": "tsx scripts/parser-test.ts",
     "test:ocr": "tsx --env-file-if-exists=.env scripts/ocr-test.ts",

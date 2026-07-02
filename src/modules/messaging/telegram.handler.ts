@@ -11,6 +11,7 @@ import { parseClosingText, CLOSING_TEMPLATE } from "./closing-parser";
 import { recordDailyClosing } from "@/modules/finance/daily-closing.service";
 import { addFixedCost, listFixedCosts, removeFixedCost } from "@/modules/finance/fixed-cost.service";
 import { getBranchPL, getExpenseBreakdown } from "@/modules/finance/report.service";
+import { addWithdrawal, listWithdrawals, monthlyWithdrawn } from "@/modules/finance/withdrawal.service";
 
 const bdt = (n: number) => `৳${n.toLocaleString("en-US")}`;
 
@@ -20,7 +21,7 @@ const WELCOME =
   "• <b>Type it</b> (100% accurate) — send <code>/format</code> to get the template\n" +
   "• <b>Photo</b> — snap your sheet, I'll read it (best-effort)\n\n" +
   "First link this chat:\n<code>/link YOUR-CODE</code>\n\n" +
-  "Commands: /branch · /format · /fixed · /expenses · /report";
+  "Commands: /branch · /format · /fixed · /expenses · /take · /report";
 
 /**
  * Single entry point for a Telegram update — used by both the webhook route and
@@ -46,6 +47,8 @@ export async function handleUpdate(update: TelegramUpdate): Promise<void> {
       );
     } else if (/^\/(closing|entry)\b/i.test(msg.text ?? "")) {
       await handleClosingText(chatId, msg.text!);
+    } else if (msg.text?.startsWith("/take")) {
+      await handleTake(chatId, msg.text);
     } else if (msg.text?.startsWith("/branch")) {
       await handleBranch(chatId, msg.text);
     } else if (msg.text?.startsWith("/fixed")) {
@@ -166,6 +169,54 @@ async function handleClosingText(chatId: string, text: string): Promise<void> {
     `🛒 Expenses: ${bdt(rec.expensesTotal)}  (${data.expenses.length} items)`,
     `🏦 Opening ${bdt(data.openingCash)} · Add cash ${bdt(data.addedCash)} · Cash in hand ${bdt(data.cashInHand)}`,
     `🧮 Expected ${bdt(rec.expectedCash)} → ${shortLine}`,
+  ];
+  await sendMessage(chatId, lines.join("\n"));
+}
+
+/**
+ * /take                    → list this month's withdrawals per person
+ * /take <person> <amount>  → record a withdrawal (many lines allowed)
+ */
+async function handleTake(chatId: string, text: string): Promise<void> {
+  const branch = await getBranchByTelegramChat(chatId);
+  if (!branch) {
+    await sendMessage(chatId, "This chat isn't linked yet. Use <code>/link YOUR-CODE</code> first.");
+    return;
+  }
+  const results: string[] = [];
+  let bad = 0;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/^\/take\b/i, "").trim();
+    if (!line || /^-?list$/i.test(line)) continue;
+    const m = line.match(/^(.+?)\s+(-?[\d.,]+)$/);
+    if (m) {
+      const person = m[1]!.trim();
+      const amount = parseFloat(m[2]!.replace(/,/g, ""));
+      await addWithdrawal(branch.company_id, branch.id, person, amount);
+      results.push(`💸 <b>${person}</b> took ${bdt(amount)}`);
+    } else {
+      bad++;
+    }
+  }
+  if (results.length > 0) {
+    await sendMessage(chatId, results.join("\n"));
+    return;
+  }
+  if (bad > 0) {
+    await sendMessage(chatId, "Usage:\n<code>/take Faisal 45000</code>\n<code>/take</code> — list this month");
+    return;
+  }
+
+  const { monthLabel, items, total } = await listWithdrawals(branch.company_id, branch.id);
+  if (items.length === 0) {
+    await sendMessage(chatId, "No withdrawals this month.\nRecord one: <code>/take Faisal 45000</code>");
+    return;
+  }
+  const lines = [
+    `💸 <b>Withdrawals</b> — ${branch.name} (${monthLabel})`,
+    ...items.map((i) => `• ${i.person}: <b>${bdt(i.total)}</b>`),
+    "──────────",
+    `Total taken: <b>${bdt(total)}</b>`,
   ];
   await sendMessage(chatId, lines.join("\n"));
 }
@@ -304,6 +355,7 @@ async function handleReport(chatId: string): Promise<void> {
     await sendMessage(chatId, "No daily closings recorded yet. Send one first (/format).");
     return;
   }
+  const withdrawn = await monthlyWithdrawn(branch.company_id, branch.id);
   const L = rep.latest!;
   const M = rep.month;
   const cash =
@@ -325,8 +377,9 @@ async function handleReport(chatId: string): Promise<void> {
     `  Sale ${bdt(M.sale)}`,
     `  − Panda comm ${bdt(M.pandaCommission)} − Expenses ${bdt(M.expenses)} − Establishment ${bdt(M.establishment)}`,
     `  = Real profit ${pl(M.profit)}`,
+    withdrawn ? `  💸 Owner withdrawn: ${bdt(withdrawn)}` : "",
     `  🗓️ ${M.surplusDays} day(s) beshi · ${M.shortDays} day(s) short`,
-  ];
+  ].filter(Boolean);
   await sendMessage(chatId, lines.join("\n"));
 }
 
