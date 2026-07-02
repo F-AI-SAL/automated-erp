@@ -4,7 +4,8 @@ import {
   downloadPhoto,
   type TelegramUpdate,
 } from "./telegram.service";
-import { getBranchByTelegramChat, linkTelegramChat } from "./link.service";
+import { getBranchByTelegramChat, linkTelegramChat, listCompanyBranches, getLinkCode } from "./link.service";
+import { createBranch } from "@/modules/core/company.service";
 import { ingestDailyClosing } from "./daily-ingest.service";
 import { parseClosingText, CLOSING_TEMPLATE } from "./closing-parser";
 import { recordDailyClosing } from "@/modules/finance/daily-closing.service";
@@ -19,7 +20,7 @@ const WELCOME =
   "• <b>Type it</b> (100% accurate) — send <code>/format</code> to get the template\n" +
   "• <b>Photo</b> — snap your sheet, I'll read it (best-effort)\n\n" +
   "First link this chat:\n<code>/link YOUR-CODE</code>\n\n" +
-  "Commands: /format · /fixed · /report";
+  "Commands: /branch · /format · /fixed · /report";
 
 /**
  * Single entry point for a Telegram update — used by both the webhook route and
@@ -45,6 +46,8 @@ export async function handleUpdate(update: TelegramUpdate): Promise<void> {
       );
     } else if (/^\/(closing|entry)\b/i.test(msg.text ?? "")) {
       await handleClosingText(chatId, msg.text!);
+    } else if (msg.text?.startsWith("/branch")) {
+      await handleBranch(chatId, msg.text);
     } else if (msg.text?.startsWith("/fixed")) {
       await handleFixed(chatId, msg.text);
     } else if (msg.text === "/report" || /report|রিপোর্ট|লাভ/i.test(msg.text ?? "")) {
@@ -161,6 +164,44 @@ async function handleClosingText(chatId: string, text: string): Promise<void> {
     `🛒 Expenses: ${bdt(rec.expensesTotal)}  (${data.expenses.length} items)`,
     `🏦 Opening ${bdt(data.openingCash)} · Add cash ${bdt(data.addedCash)} · Cash in hand ${bdt(data.cashInHand)}`,
     `🧮 Expected ${bdt(rec.expectedCash)} → ${shortLine}`,
+  ];
+  await sendMessage(chatId, lines.join("\n"));
+}
+
+/**
+ * /branch            → list all branches of this company + link codes
+ * /branch add <name> → create a new branch, return its link code
+ */
+async function handleBranch(chatId: string, text: string): Promise<void> {
+  const current = await getBranchByTelegramChat(chatId);
+  if (!current) {
+    await sendMessage(chatId, "This chat isn't linked yet. Use <code>/link YOUR-CODE</code> first.");
+    return;
+  }
+  const rest = text.replace(/^\/branch\b/i, "").trim();
+  const addM = rest.match(/^add\s+(.+)$/i);
+
+  if (addM) {
+    const name = addM[1]!.trim();
+    const nb = await createBranch(current.company_id, { name });
+    const code = await getLinkCode(nb.id);
+    await sendMessage(
+      chatId,
+      `✅ Branch created: <b>${name}</b>\nLink its own chat with:\n<code>/link ${code}</code>`,
+    );
+    return;
+  }
+
+  const branches = await listCompanyBranches(current.company_id);
+  const lines = [
+    `🏢 <b>Branches</b> (${branches.length})`,
+    ...branches.map((b) => {
+      const here = b.id === current.id ? "  ← this chat" : "";
+      const linked = b.telegram_chat_id ? "🔗 linked" : `code <code>${b.telegram_link_code}</code>`;
+      return `• <b>${b.name}</b> — ${linked}${here}`;
+    }),
+    "",
+    "Add a branch: <code>/branch add 60 feet</code>",
   ];
   await sendMessage(chatId, lines.join("\n"));
 }

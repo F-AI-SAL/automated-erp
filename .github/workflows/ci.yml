@@ -105,6 +105,9 @@ jobs:
       - name: Report test — daily net + monthly profit (fixed cost)
         run: npm run test:report
 
+      - name: Branch test — multi-branch isolation
+        run: npm run test:branch
+
       - name: Parser test — structured /closing text (100% accurate path)
         run: npm run test:parser
 
