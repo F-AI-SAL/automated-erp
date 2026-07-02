@@ -229,6 +229,8 @@ Branch protection on `main`: required checks = **CI Gate** + **Analyze (JS/TS)**
 
 ## ✅ Changelog
 
+- **2026-07-02 (PRODUCTION LIVE 🚀)** — Deployed to **Vercel (free)**: automated-erp.vercel.app, Telegram webhook registered + secret-verified (correct→200 / wrong→401), health db:up, 0 errors. Bot runs 24/7 independent of any local session, ~$0/mo. Full Excel workflow reproduced: daily cash closing (beshi/short), Excel P&L (panda commission + establishment), category breakdown (normalized), multi-branch, owner withdrawals — all CI-locked to real Excel numbers. PRs #16–#31.
+
 - **2026-07-02 (daily cash-closing ✅ verified)** — Pivoted to the user's real workflow: a daily cash-reconciliation sheet over Telegram. Structured `/closing` text entry (100% accurate, forgiving parser) + best-effort photo OCR. Reconciliation: expected = opening + add cash + cash sale − expenses; cash sale = total − card − bkash − panda − due. **Locked to the user's real 1-7-26 sheet — reproduces exactly ৳167 beshi (surplus)**, matching their manual calc to the taka. Migrations 0002–0005; PRs #16–#21; regression tests in CI.
 
 - **2026-07-02** — Phase 0 scaffold created: modular-monolith layout, `EventBus` + `PostgresOutboxBus`, outbox dispatcher worker, `sale.posted` → inventory/finance reference flow, health check, `0000_outbox.sql`, docker-compose (Postgres + n8n).
