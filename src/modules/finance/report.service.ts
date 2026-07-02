@@ -141,6 +141,20 @@ export async function getBranchPL(companyId: string, branchId: string): Promise<
   });
 }
 
+/**
+ * The branch a company should see by default: the one with the most recent daily
+ * closing (so the dashboard opens on real data, not an empty branch). Null if none.
+ */
+export async function getBranchWithLatestData(companyId: string): Promise<string | null> {
+  return withTenant(companyId, async (tx) => {
+    const res = await tx.query<{ branch_id: string }>(
+      `SELECT branch_id FROM daily_closings
+        ORDER BY closing_date DESC, created_at DESC LIMIT 1`,
+    );
+    return res.rows[0]?.branch_id ?? null;
+  });
+}
+
 export interface TrendDay {
   date: string;
   sale: number;

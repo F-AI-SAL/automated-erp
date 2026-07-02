@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { authorize, toErrorResponse } from "@/lib/http/auth";
 import { listBranches } from "@/modules/core/company.service";
-import { getBranchPL, getExpenseBreakdown, getDailyTrend } from "@/modules/finance/report.service";
+import {
+  getBranchPL,
+  getExpenseBreakdown,
+  getDailyTrend,
+  getBranchWithLatestData,
+} from "@/modules/finance/report.service";
 import { listWithdrawals } from "@/modules/finance/withdrawal.service";
 import { listFixedCosts } from "@/modules/finance/fixed-cost.service";
 
@@ -22,9 +27,12 @@ export async function GET(req: Request) {
     }
 
     const requested = new URL(req.url).searchParams.get("branchId");
+    // Prefer: explicit request → user's own branch → branch with the newest data → first.
+    const withData = requested || ctx.branchId ? null : await getBranchWithLatestData(companyId);
     const branchId =
       (requested && branches.some((b) => b.id === requested) && requested) ||
       (ctx.branchId && branches.some((b) => b.id === ctx.branchId) && ctx.branchId) ||
+      (withData && branches.some((b) => b.id === withData) && withData) ||
       branches[0]!.id;
 
     const [pl, expenses, withdrawals, fixedCosts, trend] = await Promise.all([
