@@ -6,6 +6,7 @@ export interface DailyIngestResult extends RecordedClosing {
   saleTotal: number;
   saleCard: number;
   saleBkash: number;
+  salePanda: number;
   saleDue: number;
   openingCash: number;
   addedCash: number;
@@ -48,6 +49,7 @@ export async function ingestDailyClosing(input: {
     saleTotal: ocr.data.saleTotal,
     saleCard: ocr.data.saleCard,
     saleBkash: ocr.data.saleBkash,
+    salePanda: ocr.data.salePanda,
     saleDue: ocr.data.saleDue,
     openingCash: ocr.data.openingCash,
     addedCash: ocr.data.addedCash,

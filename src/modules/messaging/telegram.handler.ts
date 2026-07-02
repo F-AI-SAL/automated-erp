@@ -102,7 +102,7 @@ async function handlePhoto(
 
   const lines = [
     "✅ <b>Daily closing recorded!</b>",
-    `💰 Sale: <b>${bdt(r.saleTotal)}</b>  (Cash ${bdt(r.saleCash)} · Card ${bdt(r.saleCard)} · bKash ${bdt(r.saleBkash)} · Due ${bdt(r.saleDue)})`,
+    `💰 Sale: <b>${bdt(r.saleTotal)}</b>  (Cash ${bdt(r.saleCash)} · Card ${bdt(r.saleCard)} · bKash ${bdt(r.saleBkash)} · Panda ${bdt(r.salePanda)} · Due ${bdt(r.saleDue)})`,
     `🛒 Expenses: ${bdt(r.expensesTotal)}  (${r.expenseCount} items)`,
     `🏦 Opening ${bdt(r.openingCash)} · Add cash ${bdt(r.addedCash)} · Cash in hand ${bdt(r.cashInHand)}`,
     `🧮 Expected ${bdt(r.expectedCash)} → ${shortLine}`,
@@ -151,7 +151,7 @@ async function handleClosingText(chatId: string, text: string): Promise<void> {
 
   const lines = [
     "✅ <b>Daily closing recorded!</b> (typed — 100% accurate)",
-    `💰 Sale: <b>${bdt(data.saleTotal)}</b>  (Cash ${bdt(rec.saleCash)} · Card ${bdt(data.saleCard)} · bKash ${bdt(data.saleBkash)} · Due ${bdt(data.saleDue)})`,
+    `💰 Sale: <b>${bdt(data.saleTotal)}</b>  (Cash ${bdt(rec.saleCash)} · Card ${bdt(data.saleCard)} · bKash ${bdt(data.saleBkash)} · Panda ${bdt(data.salePanda)} · Due ${bdt(data.saleDue)})`,
     `🛒 Expenses: ${bdt(rec.expensesTotal)}  (${data.expenses.length} items)`,
     `🏦 Opening ${bdt(data.openingCash)} · Add cash ${bdt(data.addedCash)} · Cash in hand ${bdt(data.cashInHand)}`,
     `🧮 Expected ${bdt(rec.expectedCash)} → ${shortLine}`,
