@@ -71,12 +71,22 @@ async function main() {
   assert(!roleHasPermission("Viewer", "sales:write"), "Viewer is read-only");
 
   // ── 7. RLS-scoped branch CRUD ──
-  const branch = await createBranch(reg.companyId, { name: "Main Branch", phone: "017" });
+  const branch = await createBranch(reg.companyId, { name: "Main Branch", phone: "017" }, reg.userId);
   assert(branch.id, "branch created");
   const list = await listBranches(reg.companyId);
   assert(list.length === 1 && list[0]!.name === "Main Branch", "branch listed under tenant");
 
-  console.log("✅ CORE TEST PASSED — register/login/refresh + JWT + RBAC matrix + branch CRUD all verified");
+  // ── 8. audit log captured the mutations (who/what/when) ──
+  const audit = await workerPool.query<{ action: string }>(
+    `SELECT action FROM audit_logs WHERE company_id = $1 ORDER BY created_at`,
+    [reg.companyId],
+  );
+  const actions = audit.rows.map((r) => r.action);
+  assert(actions.includes("company.registered"), "audit: company.registered logged");
+  assert(actions.includes("auth.login"), "audit: auth.login logged");
+  assert(actions.includes("branch.created"), "audit: branch.created logged");
+
+  console.log("✅ CORE TEST PASSED — register/login/refresh + JWT + RBAC matrix + branch CRUD + audit log all verified");
 }
 
 main()

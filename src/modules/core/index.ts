@@ -12,4 +12,6 @@ export { register, login, refresh, verifyToken, AuthError } from "./auth.service
 export { createBranch, listBranches } from "./company.service";
 export { seedRoles, ROLE_PERMISSIONS } from "./roles";
 export { hasPermission, requirePermission, roleHasPermission, ForbiddenError } from "./rbac";
+export { writeAudit } from "./audit.service";
+export type { AuditEntry } from "./audit.service";
 export type { RoleName, Permission, AuthContext, AuthClaims } from "./core.types";

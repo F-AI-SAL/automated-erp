@@ -25,7 +25,7 @@ export async function POST(req: Request) {
   try {
     const ctx = authorize(req, "branches:manage");
     const body = CreateBody.parse(await req.json());
-    const branch = await createBranch(ctx.companyId, body);
+    const branch = await createBranch(ctx.companyId, body, ctx.sub);
     return NextResponse.json({ branch }, { status: 201 });
   } catch (err) {
     return toErrorResponse(err);
