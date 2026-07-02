@@ -105,6 +105,9 @@ jobs:
       - name: Report test — daily net + monthly profit (fixed cost)
         run: npm run test:report
 
+      - name: Dashboard test — daily trend series + same-day dedup
+        run: npm run test:dashboard
+
       - name: Branch test — multi-branch isolation
         run: npm run test:branch
 

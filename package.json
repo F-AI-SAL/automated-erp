@@ -17,6 +17,7 @@
     "test:daily": "tsx --env-file-if-exists=.env scripts/daily-test.ts",
     "test:fixed": "tsx --env-file-if-exists=.env scripts/fixed-test.ts",
     "test:report": "tsx --env-file-if-exists=.env scripts/report-test.ts",
+    "test:dashboard": "tsx --env-file-if-exists=.env scripts/dashboard-test.ts",
     "test:branch": "tsx --env-file-if-exists=.env scripts/branch-test.ts",
     "test:expenses": "tsx --env-file-if-exists=.env scripts/expenses-test.ts",
     "test:withdrawal": "tsx --env-file-if-exists=.env scripts/withdrawal-test.ts",

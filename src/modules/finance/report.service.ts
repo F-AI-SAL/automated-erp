@@ -141,6 +141,73 @@ export async function getBranchPL(companyId: string, branchId: string): Promise<
   });
 }
 
+export interface TrendDay {
+  date: string;
+  sale: number;
+  profit: number; // Excel P&L profit for that day
+  shortage: number; // + short, − beshi
+  status: string;
+}
+
+/**
+ * Per-day sale + Excel-P&L profit for the latest month — feeds the dashboard chart.
+ * Uses the latest closing per day (corrections don't double-count), same P&L math
+ * as {@link getBranchPL}: profit = sale − (panda commission + expenses + establishment/day).
+ */
+export async function getDailyTrend(
+  companyId: string,
+  branchId: string,
+): Promise<{ monthLabel: string; days: TrendDay[] }> {
+  return withTenant(companyId, async (tx) => {
+    const pandaRate = Number(
+      (await tx.query<{ panda_rate: string }>(`SELECT panda_rate FROM branches WHERE id = $1`, [branchId]))
+        .rows[0]?.panda_rate ?? 0.32,
+    );
+    const fixedMonthly = Number(
+      (
+        await tx.query<{ total: string }>(
+          `SELECT COALESCE(SUM(monthly_amount),0)::text AS total
+             FROM fixed_costs WHERE branch_id = $1 AND is_active = true`,
+          [branchId],
+        )
+      ).rows[0]?.total ?? 0,
+    );
+    const establishmentPerDay = fixedMonthly / 30;
+
+    const rows = (
+      await tx.query<DayRow>(
+        `WITH latest AS (
+           SELECT DISTINCT ON (closing_date)
+                  closing_date, sale_total, sale_panda, expenses_total, shortage, status
+             FROM daily_closings
+            WHERE branch_id = $1
+            ORDER BY closing_date, created_at DESC
+         )
+         SELECT closing_date::text AS closing_date, sale_total, sale_panda, expenses_total, shortage, status
+           FROM latest
+          WHERE date_trunc('month', closing_date) =
+                (SELECT date_trunc('month', max(closing_date)) FROM latest)
+          ORDER BY closing_date`,
+        [branchId],
+      )
+    ).rows;
+
+    const r2 = (n: number) => Math.round(n * 100) / 100;
+    const days: TrendDay[] = rows.map((r) => {
+      const sale = Number(r.sale_total);
+      const cost = Number(r.sale_panda) * pandaRate + Number(r.expenses_total) + establishmentPerDay;
+      return {
+        date: r.closing_date,
+        sale,
+        profit: r2(sale - cost),
+        shortage: Number(r.shortage),
+        status: r.status,
+      };
+    });
+    return { monthLabel: rows[0]?.closing_date.slice(0, 7) ?? "", days };
+  });
+}
+
 export interface ExpenseCategory {
   name: string;
   total: number;
