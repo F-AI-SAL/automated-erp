@@ -93,6 +93,9 @@ jobs:
       - name: Core test — auth (register/login/refresh) + JWT + RBAC + branch CRUD
         run: npm run test:core
 
+      - name: Sales test — product + manual sale → event → P&L + RBAC + audit
+        run: npm run test:sales
+
       - name: Smoke test — sale → stock → P&L + idempotency + RLS isolation
         run: npm run test:smoke
 
