@@ -6,7 +6,8 @@ export interface DailyClosingInput {
   saleCard: number;
   saleBkash: number;
   saleDue: number;
-  openingCash: number;
+  openingCash: number; // opening / petty cash
+  addedCash: number; // cash added into the drawer during the day
   cashInHand: number;
   expenses: Array<{ name: string; amount: number }>;
 }
@@ -22,13 +23,13 @@ export interface Reconciliation {
 /**
  * Pure reconciliation math (no I/O — unit-testable).
  *   cash sale     = total − card − bkash − due
- *   expected cash = opening + cash sale − expenses
+ *   expected cash = opening + added cash + cash sale − expenses
  *   shortage      = expected − counted   (＋ short, − surplus)
  */
 export function computeReconciliation(input: DailyClosingInput): Reconciliation {
   const saleCash = Math.max(0, input.saleTotal - input.saleCard - input.saleBkash - input.saleDue);
   const expensesTotal = input.expenses.reduce((s, e) => s + e.amount, 0);
-  const expectedCash = input.openingCash + saleCash - expensesTotal;
+  const expectedCash = input.openingCash + input.addedCash + saleCash - expensesTotal;
   const shortage = Math.round((expectedCash - input.cashInHand) * 100) / 100;
   const status = shortage > 0 ? "short" : shortage < 0 ? "surplus" : "matched";
   return { saleCash, expensesTotal, expectedCash, shortage, status };
@@ -56,15 +57,15 @@ export async function recordDailyClosing(args: {
     const res = await tx.query<{ id: string }>(
       `INSERT INTO daily_closings
          (company_id, branch_id, closing_date, sale_total, sale_card, sale_bkash, sale_due,
-          sale_cash, opening_cash, expenses_total, cash_in_hand, expected_cash, shortage,
+          sale_cash, opening_cash, added_cash, expenses_total, cash_in_hand, expected_cash, shortage,
           status, source, source_hash, raw)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)
        ON CONFLICT (branch_id, source_hash) DO NOTHING
        RETURNING id`,
       [
         args.companyId, args.branchId, closingDate,
         args.data.saleTotal, args.data.saleCard, args.data.saleBkash, args.data.saleDue,
-        r.saleCash, args.data.openingCash, r.expensesTotal, args.data.cashInHand,
+        r.saleCash, args.data.openingCash, args.data.addedCash, r.expensesTotal, args.data.cashInHand,
         r.expectedCash, r.shortage, r.status, args.source, args.sourceHash,
         args.raw === undefined ? null : JSON.stringify(args.raw),
       ],

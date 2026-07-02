@@ -17,6 +17,7 @@ card 870
 bkash 14670
 due 0
 opening 28330
+add cash 500
 cash in hand 25080
 vegetable 680
 staff bazar 460
@@ -31,6 +32,7 @@ assert(d.saleCard === 870, `card 870, got ${d.saleCard}`);
 assert(d.saleBkash === 14670, `bkash 14670, got ${d.saleBkash}`);
 assert(d.saleDue === 0, `due 0, got ${d.saleDue}`);
 assert(d.openingCash === 28330, `opening 28330, got ${d.openingCash}`);
+assert(d.addedCash === 500, `add cash 500, got ${d.addedCash}`);
 assert(d.cashInHand === 25080, `cash in hand 25080, got ${d.cashInHand}`);
 // the 5 free-form lines become expenses automatically (no marker)
 assert(d.expenses.length === 5, `5 expenses, got ${d.expenses.length}`);

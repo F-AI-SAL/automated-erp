@@ -16,6 +16,7 @@ export function parseClosingText(text: string): DailyClosingInput {
     saleBkash: 0,
     saleDue: 0,
     openingCash: 0,
+    addedCash: 0,
     cashInHand: 0,
     expenses: [],
   };
@@ -47,6 +48,7 @@ export function parseClosingText(text: string): DailyClosingInput {
     else if (/^(bkash|bikash|nagad|mobile)$/.test(key)) out.saleBkash = amount;
     else if (/^(due|baki|বাকি)$/.test(key)) out.saleDue = amount;
     else if (/^(opening|petty|openingcash|pettycash)$/.test(key)) out.openingCash = amount;
+    else if (/^(addcash|addedcash|cashadd|add)$/.test(key)) out.addedCash = amount;
     else if (/^(cash|cashinhand|inhand|hand)$/.test(key)) out.cashInHand = amount;
     else if (label) out.expenses.push({ name: label, amount }); // ← anything else = expense
   }
@@ -76,6 +78,7 @@ export const CLOSING_TEMPLATE = [
   "bkash 14670",
   "due 0",
   "opening 28330",
+  "add cash 0",
   "cash in hand 25080",
   "vegetable 680",
   "staff bazar 460",
