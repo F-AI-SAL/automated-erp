@@ -12,7 +12,9 @@ async function main() {
     .filter((f) => f.endsWith(".sql"))
     .sort();
 
-  const client = new Client({ connectionString: process.env.DATABASE_URL });
+  const url = process.env.DATABASE_URL ?? "";
+  const ssl = /@(localhost|127\.0\.0\.1)/.test(url) ? undefined : { rejectUnauthorized: false };
+  const client = new Client({ connectionString: url, ssl });
   await client.connect();
   try {
     for (const f of files) {

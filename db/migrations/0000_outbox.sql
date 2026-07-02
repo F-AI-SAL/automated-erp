@@ -32,6 +32,7 @@ CREATE INDEX IF NOT EXISTS idx_outbox_company
 -- Row-Level Security: outbox rows are tenant-scoped like everything else.
 ALTER TABLE outbox ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS outbox_tenant_isolation ON outbox;
 CREATE POLICY outbox_tenant_isolation ON outbox
   USING (company_id = current_setting('app.current_company', true)::uuid);
 

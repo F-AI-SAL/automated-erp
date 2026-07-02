@@ -9,11 +9,11 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "worker:dispatcher": "tsx src/workers/dispatcher/index.ts",
-    "db:migrate": "tsx scripts/migrate.ts",
-    "test:smoke": "tsx scripts/smoke-test.ts",
-    "test:core": "tsx scripts/core-test.ts",
-    "test:sales": "tsx scripts/sales-test.ts"
+    "worker:dispatcher": "tsx --env-file-if-exists=.env src/workers/dispatcher/index.ts",
+    "db:migrate": "tsx --env-file-if-exists=.env scripts/migrate.ts",
+    "test:smoke": "tsx --env-file-if-exists=.env scripts/smoke-test.ts",
+    "test:core": "tsx --env-file-if-exists=.env scripts/core-test.ts",
+    "test:sales": "tsx --env-file-if-exists=.env scripts/sales-test.ts"
   },
   "dependencies": {
     "next": "^15.0.0",
