@@ -8,7 +8,7 @@ export interface PostSaleInput {
   companyId: string;
   branchId: string;
   saleDate: string; // ISO date
-  source: "manual" | "whatsapp_ai";
+  source: "manual" | "whatsapp_ai" | "telegram_ai";
   sourceHash: string; // hash(branch+date+image) → idempotency
   items: Array<{ productId: string; qty: number; unitPrice: number; discount?: number }>;
   actorId?: string;
