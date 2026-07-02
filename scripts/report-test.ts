@@ -3,64 +3,56 @@ import { register } from "@/modules/core/auth.service";
 import { createBranch } from "@/modules/core/company.service";
 import { recordDailyClosing } from "@/modules/finance/daily-closing.service";
 import { addFixedCost } from "@/modules/finance/fixed-cost.service";
-import { getBranchReport } from "@/modules/finance/report.service";
+import { getBranchPL } from "@/modules/finance/report.service";
 
-/** Report integration test (real Postgres in CI): daily net + monthly profit incl. fixed cost. */
+/**
+ * P&L report test — reproduces a REAL Excel day (1 June Pallabi):
+ *   panda comm = 5162 × 32% = 1651.84 ; establishment/day = 412560/30 = 13752
+ *   total cost = 1651.84 + 9030 + 13752 = 24433.84 ; profit = 57890 − 24433.84 = 33456.16
+ */
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(`ASSERT FAILED: ${msg}`);
 }
 
 async function main() {
   const reg = await register({
-    companyName: "Report Demo",
-    ownerEmail: `report-${Date.now().toString(36)}@fe.test`,
+    companyName: "PL Demo",
+    ownerEmail: `pl-${Date.now().toString(36)}@fe.test`,
     ownerPassword: "demo-password",
   });
-  const branch = await createBranch(reg.companyId, { name: "Main" }, reg.userId);
-  const c = reg.companyId;
-  const b = branch.id;
+  const branch = await createBranch(reg.companyId, { name: "Pallabi" }, reg.userId);
+  const c = reg.companyId, b = branch.id;
 
-  // fixed cost 30,000/mo → 1,000/day
-  await addFixedCost(c, b, "Rent", 30000);
+  await addFixedCost(c, b, "Establishment", 412560); // → 13752/day
 
-  const base = {
-    saleTotal: 10000, saleCard: 0, saleBkash: 0, salePanda: 0, saleDue: 0,
-    openingCash: 0, addedCash: 0, cashInHand: 0,
-    expenses: [{ name: "bazar", amount: 3000 }],
-  };
-  // two days this month
-  await recordDailyClosing({ companyId: c, branchId: b, source: "manual", sourceHash: "r1",
-    data: { ...base, date: "2026-07-01" } });
-  await recordDailyClosing({ companyId: c, branchId: b, source: "manual", sourceHash: "r2",
-    data: { ...base, date: "2026-07-02" } });
+  await recordDailyClosing({
+    companyId: c, branchId: b, source: "manual", sourceHash: "pl1",
+    data: {
+      date: "2026-06-01",
+      saleTotal: 57890, saleCard: 21980, saleBkash: 1534, salePanda: 5162, saleDue: 0,
+      openingCash: 0, addedCash: 0, cashInHand: 0,
+      expenses: [{ name: "from sale cost", amount: 9030 }],
+    },
+  });
 
-  const rep = await getBranchReport(c, b);
+  const rep = await getBranchPL(c, b);
   assert(rep.hasData, "has data");
-  assert(rep.monthLabel === "2026-07", `month 2026-07, got ${rep.monthLabel}`);
-  assert(rep.month.days === 2, `2 days, got ${rep.month.days}`);
-  assert(rep.month.sale === 20000, `month sale 20000, got ${rep.month.sale}`);
-  assert(rep.month.expenses === 6000, `month expenses 6000, got ${rep.month.expenses}`);
-  assert(rep.month.fixed === 30000, `month fixed 30000, got ${rep.month.fixed}`);
-  // profit = 20000 − 6000 − 30000 = −16000
-  assert(rep.month.profit === -16000, `month profit −16000, got ${rep.month.profit}`);
-  // latest day: gross 10000−3000=7000; fixed/day=1000; net=6000
-  assert(rep.latest!.date === "2026-07-02", `latest 2026-07-02, got ${rep.latest!.date}`);
-  assert(rep.latest!.gross === 7000, `gross 7000, got ${rep.latest!.gross}`);
-  assert(rep.latest!.fixedPerDay === 1000, `fixed/day 1000, got ${rep.latest!.fixedPerDay}`);
-  assert(rep.latest!.net === 6000, `net 6000, got ${rep.latest!.net}`);
+  assert(rep.pandaRate === 0.32, `panda rate 0.32, got ${rep.pandaRate}`);
+  assert(rep.establishmentPerDay === 13752, `establishment/day 13752, got ${rep.establishmentPerDay}`);
 
-  console.log("✅ REPORT TEST PASSED — daily net + monthly profit (incl. fixed cost) verified");
+  const L = rep.latest!;
+  assert(L.pandaCommission === 1651.84, `panda comm 1651.84, got ${L.pandaCommission}`);
+  assert(L.establishment === 13752, `establishment 13752, got ${L.establishment}`);
+  assert(L.totalCost === 24433.84, `total cost 24433.84, got ${L.totalCost}`);
+  assert(L.profit === 33456.16, `profit 33456.16, got ${L.profit}`);
+
+  // month (1 day) mirrors the day
+  assert(rep.month.profit === 33456.16, `month profit 33456.16, got ${rep.month.profit}`);
+  assert(rep.month.pandaCommission === 1651.84, `month panda comm 1651.84, got ${rep.month.pandaCommission}`);
+
+  console.log("✅ REPORT TEST PASSED — reproduces real Excel day (profit 33,456.16)");
 }
 
 main()
-  .then(async () => {
-    await pool.end();
-    await workerPool.end();
-    process.exit(0);
-  })
-  .catch(async (err) => {
-    console.error("❌", err);
-    await pool.end().catch(() => {});
-    await workerPool.end().catch(() => {});
-    process.exit(1);
-  });
+  .then(async () => { await pool.end(); await workerPool.end(); process.exit(0); })
+  .catch(async (err) => { console.error("❌", err); await pool.end().catch(()=>{}); await workerPool.end().catch(()=>{}); process.exit(1); });
