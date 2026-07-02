@@ -10,7 +10,7 @@ import { ingestDailyClosing } from "./daily-ingest.service";
 import { parseClosingText, CLOSING_TEMPLATE } from "./closing-parser";
 import { recordDailyClosing } from "@/modules/finance/daily-closing.service";
 import { addFixedCost, listFixedCosts, removeFixedCost } from "@/modules/finance/fixed-cost.service";
-import { getBranchPL } from "@/modules/finance/report.service";
+import { getBranchPL, getExpenseBreakdown } from "@/modules/finance/report.service";
 
 const bdt = (n: number) => `৳${n.toLocaleString("en-US")}`;
 
@@ -20,7 +20,7 @@ const WELCOME =
   "• <b>Type it</b> (100% accurate) — send <code>/format</code> to get the template\n" +
   "• <b>Photo</b> — snap your sheet, I'll read it (best-effort)\n\n" +
   "First link this chat:\n<code>/link YOUR-CODE</code>\n\n" +
-  "Commands: /branch · /format · /fixed · /report";
+  "Commands: /branch · /format · /fixed · /expenses · /report";
 
 /**
  * Single entry point for a Telegram update — used by both the webhook route and
@@ -50,6 +50,8 @@ export async function handleUpdate(update: TelegramUpdate): Promise<void> {
       await handleBranch(chatId, msg.text);
     } else if (msg.text?.startsWith("/fixed")) {
       await handleFixed(chatId, msg.text);
+    } else if (msg.text === "/expenses" || /expenses|খরচ/i.test(msg.text ?? "")) {
+      await handleExpenses(chatId);
     } else if (msg.text === "/report" || /report|রিপোর্ট|লাভ/i.test(msg.text ?? "")) {
       await handleReport(chatId);
     } else if (msg.text === "/profit" || /profit/i.test(msg.text ?? "")) {
@@ -266,6 +268,27 @@ async function handleFixed(chatId: string, text: string): Promise<void> {
     ...items.map((i) => `• ${i.name}: ${bdt(Number(i.monthly_amount))}`),
     "──────────",
     `Total: <b>${bdt(monthlyTotal)}</b>/month  (~${bdt(perDay)}/day)`,
+  ];
+  await sendMessage(chatId, lines.join("\n"));
+}
+
+async function handleExpenses(chatId: string): Promise<void> {
+  const branch = await getBranchByTelegramChat(chatId);
+  if (!branch) {
+    await sendMessage(chatId, "This chat isn't linked yet. Use <code>/link YOUR-CODE</code> first.");
+    return;
+  }
+  const { monthLabel, items, total } = await getExpenseBreakdown(branch.company_id, branch.id);
+  if (items.length === 0) {
+    await sendMessage(chatId, "No expenses recorded yet. Send a daily closing first (/format).");
+    return;
+  }
+  const pct = (n: number) => (total ? ((n / total) * 100).toFixed(0) : "0");
+  const lines = [
+    `🛒 <b>Expenses by category</b> — ${branch.name} (${monthLabel})`,
+    ...items.slice(0, 20).map((i) => `• ${i.name}: <b>${bdt(i.total)}</b> (${pct(i.total)}%)`),
+    "──────────",
+    `Total: <b>${bdt(total)}</b>`,
   ];
   await sendMessage(chatId, lines.join("\n"));
 }

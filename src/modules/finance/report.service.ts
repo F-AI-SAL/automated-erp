@@ -139,3 +139,52 @@ export async function getBranchPL(companyId: string, branchId: string): Promise<
     };
   });
 }
+
+export interface ExpenseCategory {
+  name: string;
+  total: number;
+}
+
+/**
+ * Month expense breakdown by category (the expense name IS the category, e.g.
+ * "vegetable", "gas", "chicken"). Uses the latest closing per day so corrections
+ * don't double-count. Sorted biggest-first.
+ */
+export async function getExpenseBreakdown(
+  companyId: string,
+  branchId: string,
+): Promise<{ monthLabel: string; items: ExpenseCategory[]; total: number }> {
+  return withTenant(companyId, async (tx) => {
+    const rows = (
+      await tx.query<{ name: string; total: string }>(
+        `WITH latest AS (
+           SELECT DISTINCT ON (closing_date) id, closing_date
+             FROM daily_closings WHERE branch_id = $1
+            ORDER BY closing_date, created_at DESC
+         ),
+         month AS (
+           SELECT id, closing_date FROM latest
+            WHERE date_trunc('month', closing_date) =
+                  (SELECT date_trunc('month', max(closing_date)) FROM latest)
+         )
+         SELECT lower(trim(ce.description)) AS name, SUM(ce.amount)::text AS total
+           FROM closing_expenses ce
+           JOIN month m ON m.id = ce.closing_id
+          GROUP BY lower(trim(ce.description))
+          ORDER BY SUM(ce.amount) DESC`,
+        [branchId],
+      )
+    ).rows;
+
+    const monthRow = (
+      await tx.query<{ ml: string }>(
+        `SELECT to_char(max(closing_date), 'YYYY-MM') AS ml FROM daily_closings WHERE branch_id = $1`,
+        [branchId],
+      )
+    ).rows[0];
+
+    const items = rows.map((r) => ({ name: r.name, total: Number(r.total) }));
+    const total = items.reduce((s, i) => s + i.total, 0);
+    return { monthLabel: monthRow?.ml ?? "", items, total };
+  });
+}

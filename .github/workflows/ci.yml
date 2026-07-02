@@ -108,6 +108,9 @@ jobs:
       - name: Branch test — multi-branch isolation
         run: npm run test:branch
 
+      - name: Expenses test — category breakdown
+        run: npm run test:expenses
+
       - name: Parser test — structured /closing text (100% accurate path)
         run: npm run test:parser
 
