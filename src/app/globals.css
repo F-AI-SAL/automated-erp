@@ -1,0 +1,165 @@
+:root {
+  --bg: #eef1f6;
+  --card: #ffffff;
+  --ink: #16202e;
+  --muted: #6b7684;
+  --line: #e4e8ef;
+  --accent: #0d9488;
+  --accent-ink: #0b7268;
+  --green: #16a34a;
+  --green-bg: #e7f6ec;
+  --red: #dc2626;
+  --red-bg: #fdeaea;
+  --amber: #d97706;
+  --shadow: 0 1px 2px rgba(20, 30, 45, 0.06), 0 6px 20px rgba(20, 30, 45, 0.05);
+  --radius: 16px;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Segoe UI", system-ui, -apple-system, "Noto Sans Bengali", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ── App shell ─────────────────────────────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  color: #fff;
+  background: linear-gradient(120deg, #0d9488, #0f766e);
+  box-shadow: 0 2px 12px rgba(13, 148, 136, 0.25);
+}
+.topbar .brand { font-weight: 700; font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+.topbar .spacer { flex: 1; }
+.topbar select {
+  appearance: none;
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.92);
+  cursor: pointer;
+}
+.topbar button.logout {
+  border: 0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.18);
+  cursor: pointer;
+}
+.topbar button.logout:hover { background: rgba(255, 255, 255, 0.28); }
+
+.wrap { max-width: 920px; margin: 0 auto; padding: 18px 16px 60px; }
+.month-label { color: var(--muted); font-size: 0.9rem; margin: 4px 2px 16px; }
+
+/* ── Cards ─────────────────────────────────────────────────── */
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 18px;
+  margin-bottom: 16px;
+}
+.card h2 {
+  margin: 0 0 14px;
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── KPI grid ──────────────────────────────────────────────── */
+.kpis { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
+@media (min-width: 640px) { .kpis { grid-template-columns: repeat(4, 1fr); } }
+.kpi {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px;
+}
+.kpi .label { color: var(--muted); font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; }
+.kpi .value { font-size: 1.5rem; font-weight: 800; margin-top: 6px; line-height: 1.1; }
+.kpi .sub { color: var(--muted); font-size: 0.78rem; margin-top: 4px; }
+.kpi.accent .value { color: var(--accent-ink); }
+.value.green { color: var(--green); }
+.value.red { color: var(--red); }
+
+/* ── Badges ────────────────────────────────────────────────── */
+.badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; }
+.badge.green { color: var(--green); background: var(--green-bg); }
+.badge.red { color: var(--red); background: var(--red-bg); }
+
+/* ── Latest-day panel ──────────────────────────────────────── */
+.latest-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 20px; }
+@media (min-width: 520px) { .latest-grid { grid-template-columns: repeat(3, 1fr); } }
+.stat .k { color: var(--muted); font-size: 0.8rem; }
+.stat .v { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
+
+/* ── Breakdown rows (expense / withdrawal / fixed) ─────────── */
+.row { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+.row:last-child { border-bottom: 0; }
+.row .name { width: 34%; font-size: 0.9rem; font-weight: 600; text-transform: capitalize; }
+.row .bar { flex: 1; height: 10px; border-radius: 6px; background: #eef1f6; overflow: hidden; }
+.row .bar > span { display: block; height: 100%; border-radius: 6px; background: linear-gradient(90deg, #14b8a6, #0d9488); }
+.row .amt { width: 92px; text-align: right; font-size: 0.9rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.row.total { border-top: 2px solid var(--line); border-bottom: 0; padding-top: 12px; font-weight: 800; }
+.row.total .name { width: auto; flex: 1; }
+
+/* ── Chart ─────────────────────────────────────────────────── */
+.chart svg { width: 100%; height: auto; display: block; }
+.legend { display: flex; gap: 18px; margin-top: 10px; font-size: 0.82rem; color: var(--muted); }
+.legend i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+.empty { color: var(--muted); font-size: 0.9rem; text-align: center; padding: 22px 0; }
+
+/* ── Login ─────────────────────────────────────────────────── */
+.login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px; }
+.login-card { width: 100%; max-width: 380px; background: var(--card); border-radius: 20px; box-shadow: var(--shadow); padding: 30px 26px; }
+.login-card h1 { margin: 0 0 4px; font-size: 1.3rem; display: flex; align-items: center; gap: 8px; }
+.login-card p.tag { margin: 0 0 22px; color: var(--muted); font-size: 0.88rem; }
+.field { margin-bottom: 14px; }
+.field label { display: block; font-size: 0.82rem; font-weight: 600; color: var(--muted); margin-bottom: 6px; }
+.field input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-size: 0.95rem;
+  outline: none;
+}
+.field input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.12); }
+.btn-primary {
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  padding: 13px;
+  font-size: 0.98rem;
+  font-weight: 700;
+  color: #fff;
+  background: linear-gradient(120deg, #0d9488, #0f766e);
+  cursor: pointer;
+  margin-top: 6px;
+}
+.btn-primary:disabled { opacity: 0.6; cursor: default; }
+.err { color: var(--red); background: var(--red-bg); border-radius: 10px; padding: 10px 12px; font-size: 0.85rem; margin-bottom: 12px; }
+
+.center-note { text-align: center; color: var(--muted); padding: 60px 20px; }
+.spinner { width: 26px; height: 26px; border: 3px solid var(--line); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+@keyframes spin { to { transform: rotate(360deg); } }
