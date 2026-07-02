@@ -16,6 +16,7 @@ export const ROLE_PERMISSIONS: Record<RoleName, Permission[] | "*"> = {
     "expenses:read", "expenses:write",
     "salary:read",
     "reports:read", "pnl:read",
+    "menu:manage",
     "branches:manage",
   ],
   Accountant: [
@@ -25,7 +26,7 @@ export const ROLE_PERMISSIONS: Record<RoleName, Permission[] | "*"> = {
     "reports:read", "pnl:read",
   ],
   Cashier: ["sales:read", "sales:write"],
-  Kitchen: ["inventory:read", "inventory:write", "sales:read"],
+  Kitchen: ["inventory:read", "inventory:write", "sales:read", "menu:manage"],
   Inventory: ["inventory:read", "inventory:write", "purchase:read", "purchase:write"],
   Staff: ["sales:read"],
   Viewer: ["sales:read", "inventory:read", "reports:read", "pnl:read"],

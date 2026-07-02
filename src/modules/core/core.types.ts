@@ -34,6 +34,7 @@ export type Permission =
   | "salary:write"
   | "reports:read"
   | "pnl:read"
+  | "menu:manage"
   | "branches:manage"
   | "settings:manage";
 

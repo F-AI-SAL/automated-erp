@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { withTenant } from "@/lib/db/with-tenant";
 import { eventBus } from "@/lib/eventbus";
+import { writeAudit } from "@/modules/core/audit.service";
 import type { SalePostedPayload } from "@/lib/eventbus/domain-event";
 
 export interface PostSaleInput {
@@ -9,6 +11,15 @@ export interface PostSaleInput {
   source: "manual" | "whatsapp_ai";
   sourceHash: string; // hash(branch+date+image) → idempotency
   items: Array<{ productId: string; qty: number; unitPrice: number; discount?: number }>;
+  actorId?: string;
+}
+
+export interface SaleSummary {
+  id: string;
+  branch_id: string;
+  sale_date: string;
+  source: string;
+  total: string;
 }
 
 /**
@@ -59,6 +70,51 @@ export async function postSale(input: PostSaleInput): Promise<{ saleId: string |
       tx,
     );
 
+    await writeAudit(tx, {
+      companyId: input.companyId,
+      userId: input.actorId,
+      action: "sale.posted",
+      entity: "sale",
+      entityId: saleId,
+      after: { total, source: input.source, items: input.items.length },
+    });
+
     return { saleId };
+  });
+}
+
+/**
+ * Manual sell-sheet entry (the UI/API path). Generates a unique source_hash so
+ * each manual submission is its own sale; the WhatsApp/AI path reuses postSale
+ * with a deterministic hash (branch+date+image) for idempotency.
+ */
+export async function createManualSale(input: {
+  companyId: string;
+  branchId: string;
+  saleDate: string;
+  items: PostSaleInput["items"];
+  actorId?: string;
+}): Promise<{ saleId: string | null }> {
+  return postSale({
+    ...input,
+    source: "manual",
+    sourceHash: `manual-${randomUUID()}`,
+  });
+}
+
+/** Recent sales for a branch (RLS-scoped). */
+export async function listSales(
+  companyId: string,
+  branchId: string,
+  limit = 50,
+): Promise<SaleSummary[]> {
+  return withTenant(companyId, async (tx) => {
+    const res = await tx.query<SaleSummary>(
+      `SELECT id, branch_id, sale_date, source, total
+         FROM sales WHERE company_id = $1 AND branch_id = $2
+        ORDER BY sale_date DESC, created_at DESC LIMIT $3`,
+      [companyId, branchId, limit],
+    );
+    return res.rows;
   });
 }
