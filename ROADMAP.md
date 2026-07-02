@@ -29,7 +29,7 @@ Accounts + tools ready করো:
 - [x] GitHub repo (private) + branch protection — `F-AI-SAL/automated-erp`, main protected (CI Gate + CodeQL required, PR + CODEOWNERS, linear history, no force-push)
 - [x] Supabase project (Postgres + Auth + Storage) — Singapore; DB live, migrations applied, core+sales tests pass on it _(API keys for Storage pending)_
 - [ ] Meta WhatsApp Cloud API app + test number
-- [ ] OpenAI / Claude API key
+- [x] OpenAI / Claude API key — Claude (Anthropic) key set; OCR verified live
 - [ ] Sentry + PostHog projects (free tier)
 - [ ] `.env` template + secrets stored in Coolify
 
@@ -82,7 +82,7 @@ Accounts + tools ready করো:
   - [ ] identify tenant (by phone)
   - [ ] store image to bucket
   - [ ] idempotency guard (`source_hash`)
-  - [ ] AI Vision extract (OCR → JSON)
+  - [x] AI Vision extract (OCR → JSON) — `extractSellSheet()` via Claude Opus 4.8, **verified live** (PR #15)
   - [ ] validate data (schema + product match + math)
   - [ ] insert sale + sale_items (txn) + `ai_logs`
   - [ ] publish `sale.posted`
@@ -202,6 +202,7 @@ Branch protection on `main`: required checks = **CI Gate** + **Analyze (JS/TS)**
 
 > ✅ Deprecation warnings resolved: actions bumped (checkout v7, setup-node v6, codeql v4). Dependabot now ignores **all npm majors** — majors are adopted deliberately, minor/patch flow automatically.
 
+- **2026-07-02 (AI OCR 🟢)** — Claude vision OCR built + **verified live** (**PR #15**): `extractSellSheet()` via @anthropic-ai/sdk structured outputs (Opus 4.8, `AI_MODEL` override), Zod-validated, `ai_logs` cost logging. Test run on a generated sell-sheet: **100% correct** (date + 4 items + total 2080, conf 0.98, ~$0.008/sheet, 5.8s). New dep lockfile stayed Linux-compatible (incremental install). Next: n8n WhatsApp pipeline wiring OCR → `postSale` (needs WhatsApp token).
 - **2026-07-02 (live Supabase 🟢)** — Supabase (Singapore) connected; **PR #14**: SSL + idempotent migrations + `.env` autoload. Debugged: `.env` not auto-loaded by tsx (→ `node --env-file-if-exists`), sandbox blocks port 5432 (→ run DB cmds unsandboxed), password had a literal `@` (→ URL-encode `%40`), managed PG needs TLS, partial-apply (→ idempotent migrations). **Migrations applied + core-test + sales-test PASS on real Supabase.** App is now running on production-grade infra.
 - **2026-07-02 (Phase 1 start)** — First MVP slice merged (**PR #13**): Products/Menu create+list (`menu:manage`), manual Sales API (`/api/sales`) → `sale.posted` → stock/P&L event flow, `listSales`, audit on `postSale`. New **sales-test** in CI (real Postgres) green: product + manual sale → P&L(750) + RBAC + audit. WhatsApp/AI ingestion deferred (Pre-Flight blocked) — will reuse this same `postSale` path. Next Phase 1: Raw-material/Recipe CRUD, Purchase, Expenses, Dashboard.
 - **2026-07-02 (Phase 0 ✅)** — Audit-log writer merged (**PR #12**): `writeAudit()` atomic-with-mutation, wired into register/login/branch, CI core-test asserts the rows. **Phase 0 fully complete** — foundation, event backbone, core auth/RBAC, audit all done + CI-verified. Next: Phase 1 MVP (Products/Recipes → manual Sales → wow-loop; WhatsApp/AI once Pre-Flight accounts exist).
