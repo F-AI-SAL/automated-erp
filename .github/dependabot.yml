@@ -10,17 +10,10 @@ updates:
       minor-and-patch:
         update-types: ["minor", "patch"]
     labels: ["dependencies"]
-    # Framework majors are breaking migrations — we do them deliberately, not via bot.
+    # npm majors are breaking (framework/tooling migrations) — we adopt them
+    # deliberately, not via bot. Minor + patch still flow (grouped above).
     ignore:
-      - dependency-name: "next"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "eslint-config-next"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "react"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "react-dom"
-        update-types: ["version-update:semver-major"]
-      - dependency-name: "typescript"
+      - dependency-name: "*"
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: github-actions
