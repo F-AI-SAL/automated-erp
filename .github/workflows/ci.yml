@@ -17,6 +17,7 @@ permissions:
 
 env:
   NODE_VERSION: "20"
+  NPM_VERSION: "11.7.0" # match the npm that generated package-lock.json (reproducible ci)
 
 jobs:
   quality:
@@ -29,6 +30,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+
+      - name: Pin npm to lockfile generator
+        run: npm i -g npm@${{ env.NPM_VERSION }}
 
       - name: Install (clean, lockfile-exact)
         run: npm ci
@@ -75,6 +79,9 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
+
+      - name: Pin npm to lockfile generator
+        run: npm i -g npm@${{ env.NPM_VERSION }}
 
       - name: Install
         run: npm ci
