@@ -1,0 +1,40 @@
+name: Sync lockfile (Linux)
+
+# Regenerates package-lock.json on Linux so it matches the CI runtime and
+# `npm ci` stays strict + reproducible. Run this after changing dependencies
+# from a non-Linux dev machine. Manual trigger only.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Pin npm
+        run: npm i -g npm@11.7.0
+
+      - name: Regenerate lockfile
+        run: |
+          rm -f package-lock.json
+          npm install --no-audit --no-fund --package-lock-only
+
+      - name: Commit if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if git diff --quiet package-lock.json; then
+            echo "lockfile already in sync — nothing to do"
+          else
+            git add package-lock.json
+            git commit -m "chore(ci): regenerate package-lock.json on Linux [skip ci]"
+            git push
+          fi
