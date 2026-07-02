@@ -173,26 +173,37 @@ async function handleFixed(chatId: string, text: string): Promise<void> {
     await sendMessage(chatId, "This chat isn't linked yet. Use <code>/link YOUR-CODE</code> first.");
     return;
   }
-  const rest = text.replace(/^\/fixed\b/i, "").trim();
-  const addM = rest.match(/^add\s+(.+?)\s+(-?[\d.,]+)$/i);
-  const rmM = rest.match(/^(?:rm|remove|delete)\s+(.+)$/i);
+  // Process each line — supports many `add`/`rm` in one message (strip an
+  // optional leading /fixed on each line).
+  const results: string[] = [];
+  let bad = 0;
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.replace(/^\/fixed\b/i, "").trim();
+    if (!line || /^-?list$/i.test(line)) continue;
+    const addM = line.match(/^add\s+(.+?)\s+(-?[\d.,]+)$/i);
+    const rmM = line.match(/^(?:rm|remove|delete)\s+(.+)$/i);
+    if (addM) {
+      const name = addM[1]!.trim();
+      const amount = parseFloat(addM[2]!.replace(/,/g, ""));
+      await addFixedCost(branch.company_id, branch.id, name, amount);
+      results.push(`✅ <b>${name}</b> = ${bdt(amount)}/mo`);
+    } else if (rmM) {
+      const ok = await removeFixedCost(branch.company_id, branch.id, rmM[1]!.trim());
+      results.push(ok ? `🗑️ Removed <b>${rmM[1]!.trim()}</b>` : `❌ "${rmM[1]!.trim()}" not found`);
+    } else {
+      bad++;
+    }
+  }
 
-  if (addM) {
-    const name = addM[1]!.trim();
-    const amount = parseFloat(addM[2]!.replace(/,/g, ""));
-    await addFixedCost(branch.company_id, branch.id, name, amount);
-    await sendMessage(chatId, `✅ Fixed cost set: <b>${name}</b> = ${bdt(amount)}/month`);
+  if (results.length > 0) {
+    if (bad > 0) results.push(`⚠️ ${bad} line(s) not understood — use <code>add Name Amount</code>`);
+    await sendMessage(chatId, results.join("\n"));
     return;
   }
-  if (rmM) {
-    const ok = await removeFixedCost(branch.company_id, branch.id, rmM[1]!.trim());
-    await sendMessage(chatId, ok ? `🗑️ Removed <b>${rmM[1]!.trim()}</b>` : "❌ No fixed cost with that name.");
-    return;
-  }
-  if (rest && rest.toLowerCase() !== "list") {
+  if (bad > 0) {
     await sendMessage(
       chatId,
-      "Usage:\n<code>/fixed</code> — list\n<code>/fixed add Shop Rent 15000</code>\n<code>/fixed rm Shop Rent</code>",
+      "Usage:\n<code>/fixed</code> — list\n<code>/fixed add Shop Rent 15000</code>\n<code>/fixed rm Shop Rent</code>\n(you can put several add lines in one message)",
     );
     return;
   }
