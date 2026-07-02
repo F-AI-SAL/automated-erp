@@ -96,6 +96,9 @@ jobs:
       - name: Sales test — product + manual sale → event → P&L + RBAC + audit
         run: npm run test:sales
 
+      - name: Daily-closing test — reconciliation + persistence + idempotency
+        run: npm run test:daily
+
       - name: Smoke test — sale → stock → P&L + idempotency + RLS isolation
         run: npm run test:smoke
 

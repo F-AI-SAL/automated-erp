@@ -5,7 +5,7 @@ import {
   type TelegramUpdate,
 } from "./telegram.service";
 import { getBranchByTelegramChat, linkTelegramChat } from "./link.service";
-import { ingestSellSheet } from "./ingest.service";
+import { ingestDailyClosing } from "./daily-ingest.service";
 
 const bdt = (n: number) => `৳${n.toLocaleString("en-US")}`;
 
@@ -62,10 +62,10 @@ async function handlePhoto(
   }
 
   const largest = photos[photos.length - 1]!; // Telegram sorts smallest→largest
-  await sendMessage(chatId, "📸 Reading your sell-sheet…");
+  await sendMessage(chatId, "📸 Reading your daily sheet…");
   const { base64, mediaType } = await downloadPhoto(largest.file_id);
 
-  const result = await ingestSellSheet({
+  const r = await ingestDailyClosing({
     companyId: branch.company_id,
     branchId: branch.id,
     imageBase64: base64,
@@ -74,30 +74,26 @@ async function handlePhoto(
     sourceMsg: `telegram:${chatId}`,
   });
 
-  if (result.duplicate) {
-    await sendMessage(chatId, "✅ This sell-sheet was already recorded.");
-    return;
-  }
-  if (!result.ok) {
-    await sendMessage(
-      chatId,
-      "⚠️ I couldn't match any items to your menu.\n" +
-        (result.itemsUnmatched.length
-          ? `Unknown items: ${result.itemsUnmatched.join(", ")}\n`
-          : "") +
-        "Add these products in your dashboard, then resend.",
-    );
+  if (r.duplicate) {
+    await sendMessage(chatId, "✅ This sheet was already recorded today.");
     return;
   }
 
+  const shortLine =
+    r.status === "short"
+      ? `⚠️ <b>Short: ${bdt(r.shortage)}</b>`
+      : r.status === "surplus"
+        ? `💚 Surplus: ${bdt(-r.shortage)}`
+        : "✅ Cash matched";
+
   const lines = [
-    "✅ <b>Sell-sheet recorded!</b>",
-    `🧾 ${result.itemsMatched} item(s) posted · ${bdt(result.matchedTotal)}`,
-    result.profit !== null ? `📊 Today's profit: <b>${bdt(result.profit)}</b>` : "",
-    result.itemsUnmatched.length
-      ? `⚠️ ${result.itemsUnmatched.length} item(s) skipped (not on your menu): ${result.itemsUnmatched.join(", ")}`
-      : "",
-    `🤖 confidence ${(result.confidence * 100).toFixed(0)}%`,
+    "✅ <b>Daily closing recorded!</b>",
+    `💰 Sale: <b>${bdt(r.saleTotal)}</b>  (Cash ${bdt(r.saleCash)} · Card ${bdt(r.saleCard)} · bKash ${bdt(r.saleBkash)} · Due ${bdt(r.saleDue)})`,
+    `🛒 Expenses: ${bdt(r.expensesTotal)}  (${r.expenseCount} items)`,
+    `🏦 Opening ${bdt(r.openingCash)} · Cash in hand ${bdt(r.cashInHand)}`,
+    `🧮 Expected ${bdt(r.expectedCash)} → ${shortLine}`,
+    r.statedShortage ? `📝 Sheet says short: ${bdt(r.statedShortage)}` : "",
+    `🤖 confidence ${(r.confidence * 100).toFixed(0)}%`,
   ].filter(Boolean);
   await sendMessage(chatId, lines.join("\n"));
 }
