@@ -70,11 +70,12 @@ async function main() {
   assert(onHand === 760, `stock should be 760g, got ${onHand}`);
 
   // ── 5. assert P&L rollup recomputed (finance handler writes period = current_date) ──
-  const pnl = await pool.query<{ revenue: string }>(
-    `SELECT revenue FROM profit_loss WHERE branch_id = $1 AND period = current_date`,
+  const pnl = await pool.query<{ revenue: string; net_profit: string }>(
+    `SELECT revenue, net_profit FROM profit_loss WHERE branch_id = $1 AND period = current_date`,
     [branchId],
   );
   assert(Number(pnl.rows[0]?.revenue) === 500, `P&L revenue should be 500, got ${pnl.rows[0]?.revenue}`);
+  assert(Number(pnl.rows[0]?.net_profit) === 500, `P&L net_profit should be 500, got ${pnl.rows[0]?.net_profit}`);
 
   // ── 6. RLS isolation: a non-superuser role scoped to company A sees NO company-B rows ──
   await assertRlsIsolation(companyId, otherCompanyId);

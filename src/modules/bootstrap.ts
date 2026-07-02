@@ -7,7 +7,11 @@ import { registerFinanceHandlers } from "./finance/finance.handlers";
  *
  * Add each module's `register*Handlers()` here as it comes online.
  */
+let registered = false;
+
 export function registerAllHandlers(): void {
+  if (registered) return; // idempotent — safe to call per request (serverless)
+  registered = true;
   registerInventoryHandlers();
   registerFinanceHandlers();
   // registerNotificationHandlers();  // Phase 3

@@ -52,11 +52,13 @@ async function main() {
   assert(processed >= 1, "dispatcher processed the sale.posted event");
 
   // ── P&L rollup reflects revenue (3 * 250 = 750) ──
-  const pnl = await pool.query<{ revenue: string }>(
-    `SELECT revenue FROM profit_loss WHERE branch_id = $1 AND period = current_date`,
+  const pnl = await pool.query<{ revenue: string; net_profit: string }>(
+    `SELECT revenue, net_profit FROM profit_loss WHERE branch_id = $1 AND period = current_date`,
     [branch.id],
   );
   assert(Number(pnl.rows[0]?.revenue) === 750, `P&L revenue should be 750, got ${pnl.rows[0]?.revenue}`);
+  // Regression guard: net_profit must be computed on the FIRST sale of the day too.
+  assert(Number(pnl.rows[0]?.net_profit) === 750, `P&L net_profit should be 750, got ${pnl.rows[0]?.net_profit}`);
 
   // ── sales list ──
   const sales = await listSales(reg.companyId, branch.id);

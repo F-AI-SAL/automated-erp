@@ -25,6 +25,9 @@ const schema = z.object({
   WHATSAPP_VERIFY_TOKEN: z.string().optional(),
   N8N_WEBHOOK_URL: z.string().url().optional(),
 
+  TELEGRAM_BOT_TOKEN: z.string().optional(),
+  TELEGRAM_WEBHOOK_SECRET: z.string().optional(),
+
   DISPATCHER_POLL_INTERVAL_MS: z.coerce.number().default(2000),
   DISPATCHER_BATCH_SIZE: z.coerce.number().default(25),
   DISPATCHER_MAX_RETRIES: z.coerce.number().default(5),

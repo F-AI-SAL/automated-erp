@@ -30,7 +30,7 @@ export interface SalePostedPayload {
   saleDate: string;
   total: number;
   items: Array<{ productId: string; qty: number; unitPrice: number }>;
-  source: "manual" | "whatsapp_ai";
+  source: "manual" | "whatsapp_ai" | "telegram_ai";
 }
 
 export interface StockDepletedPayload {
