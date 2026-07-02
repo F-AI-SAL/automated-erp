@@ -1,4 +1,5 @@
 import { withTenant } from "@/lib/db/with-tenant";
+import { normalizeCategory } from "./categories";
 
 interface DayRow {
   closing_date: string;
@@ -183,7 +184,15 @@ export async function getExpenseBreakdown(
       )
     ).rows[0];
 
-    const items = rows.map((r) => ({ name: r.name, total: Number(r.total) }));
+    // Merge spelling variations into canonical categories (Water, Coffee, …).
+    const merged = new Map<string, number>();
+    for (const r of rows) {
+      const cat = normalizeCategory(r.name);
+      merged.set(cat, (merged.get(cat) ?? 0) + Number(r.total));
+    }
+    const items = [...merged.entries()]
+      .map(([name, total]) => ({ name, total: Math.round(total * 100) / 100 }))
+      .sort((a, b) => b.total - a.total);
     const total = items.reduce((s, i) => s + i.total, 0);
     return { monthLabel: monthRow?.ml ?? "", items, total };
   });
