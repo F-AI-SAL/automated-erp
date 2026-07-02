@@ -26,7 +26,7 @@
 Accounts + tools ready করো:
 
 - [ ] Hetzner VPS (CX22, 2 vCPU / 4GB) + Coolify install
-- [ ] GitHub repo (private) + branch protection
+- [x] GitHub repo (private) + branch protection — `F-AI-SAL/automated-erp`, main protected (CI Gate + CodeQL required, PR + CODEOWNERS, linear history, no force-push)
 - [ ] Supabase project (Postgres + Auth + Storage)
 - [ ] Meta WhatsApp Cloud API app + test number
 - [ ] OpenAI / Claude API key
@@ -184,6 +184,22 @@ Accounts + tools ready করো:
 
 ---
 
+## 🔧 CI/CD & DevOps (live)
+
+Repo: **github.com/F-AI-SAL/automated-erp** (private). `main` is protected — no broken code can merge.
+
+| Workflow | Trigger | What it enforces |
+|----------|---------|------------------|
+| **CI** (`ci.yml`) | PR + push + manual | `quality` (typecheck·lint·build) + `integration` (real Postgres: migrate + event-flow/RLS smoke test) → **CI Gate** (required check) |
+| **CodeQL** (`codeql.yml`) | PR + push + weekly | security-and-quality static analysis (required check) |
+| **Sync lockfile** (`sync-lockfile.yml`) | manual | regenerate `package-lock.json` on Linux (Windows dev → strict `npm ci` in CI) |
+| **Dependabot** | weekly | npm + github-actions updates, grouped |
+
+Branch protection on `main`: required checks = **CI Gate** + **Analyze (JS/TS)**; PR + CODEOWNERS review; linear history; no force-push / no deletion.
+
+> ⚠️ Gotcha solved: Windows-generated lockfiles break Linux `npm ci` (platform-specific esbuild/picomatch). Fix = the `sync-lockfile` workflow; run it after any dependency change made on Windows.
+> 🔸 Minor: workflows warn "Node 20 deprecated" — bump `actions/*` + CodeQL to v4 later (non-blocking until Dec 2026).
+
 ## 📌 Working Rules
 
 1. **One event = one handler = one job.** Modules talk only via `EventBus` — never direct coupling.
@@ -206,4 +222,5 @@ Accounts + tools ready করো:
 ## ✅ Changelog
 
 - **2026-07-02** — Phase 0 scaffold created: modular-monolith layout, `EventBus` + `PostgresOutboxBus`, outbox dispatcher worker, `sale.posted` → inventory/finance reference flow, health check, `0000_outbox.sql`, docker-compose (Postgres + n8n).
-- **2026-07-02 (audit)** — Deep audit + real verification: `git init` + commits; `npm install`; **`tsc` found & fixed 4 type bugs** (DomainEvent payload → `unknown`); **fixed dispatcher RLS bug** (dedicated `workerPool` w/ BYPASSRLS role, else it silently drains 0 rows); dispatcher **boot-verified** (registers handlers, resolves `@/` aliases). Wrote **`0001_schema.sql`** (all tables, FK, indexes, RLS) — **parser-validated** against real Postgres grammar (0 errors). ⏳ Not yet run on a live DB (needs Supabase/Postgres creds — Pre-Flight). Next: `core` module (auth + RBAC + company/branch CRUD).
+- **2026-07-02 (audit)** — Deep audit + real verification: `git init` + commits; `npm install`; **`tsc` found & fixed 4 type bugs** (DomainEvent payload → `unknown`); **fixed dispatcher RLS bug** (dedicated `workerPool` w/ BYPASSRLS role, else it silently drains 0 rows); dispatcher **boot-verified** (registers handlers, resolves `@/` aliases). Wrote **`0001_schema.sql`** (all tables, FK, indexes, RLS) — **parser-validated** against real Postgres grammar (0 errors).
+- **2026-07-02 (ci/cd + deploy)** — Pushed to **github.com/F-AI-SAL/automated-erp** (private). Built enterprise CI: typecheck·lint·build + **real-Postgres integration job**. Debugged CI to green through: npm-ci lockfile out-of-sync → cross-platform (Windows→Linux) lockfile incompatibility, solved with a **`sync-lockfile` Linux workflow**. **CI now green** — the smoke test proves the FULL event flow on real Postgres: sale→stock(760g)→P&L(500) + idempotency + **RLS tenant isolation**. Added CodeQL + Dependabot + PR template + CODEOWNERS. **`main` branch protection live** (CI Gate + CodeQL required). Next: `core` module (auth + RBAC + company/branch CRUD) — via PR now, not direct push.
