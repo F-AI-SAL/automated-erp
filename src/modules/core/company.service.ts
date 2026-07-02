@@ -1,4 +1,5 @@
 import { withTenant } from "@/lib/db/with-tenant";
+import { writeAudit } from "./audit.service";
 
 export interface Branch {
   id: string;
@@ -8,10 +9,11 @@ export interface Branch {
   is_active: boolean;
 }
 
-/** Create a branch under the caller's company (RLS-scoped). */
+/** Create a branch under the caller's company (RLS-scoped) + audit the mutation. */
 export async function createBranch(
   companyId: string,
   input: { name: string; address?: string; phone?: string },
+  actorId?: string,
 ): Promise<Branch> {
   return withTenant(companyId, async (tx) => {
     const res = await tx.query<Branch>(
@@ -20,7 +22,16 @@ export async function createBranch(
        RETURNING id, name, address, phone, is_active`,
       [companyId, input.name, input.address ?? null, input.phone ?? null],
     );
-    return res.rows[0]!;
+    const branch = res.rows[0]!;
+    await writeAudit(tx, {
+      companyId,
+      userId: actorId,
+      action: "branch.created",
+      entity: "branch",
+      entityId: branch.id,
+      after: branch,
+    });
+    return branch;
   });
 }
 

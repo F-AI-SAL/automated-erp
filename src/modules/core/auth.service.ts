@@ -3,6 +3,7 @@ import { withTenant } from "@/lib/db/with-tenant";
 import { hashPassword, verifyPassword } from "./password";
 import { signAccessToken, signRefreshToken, verifyToken } from "./jwt";
 import { seedRoles } from "./roles";
+import { writeAudit } from "./audit.service";
 import type { AuthClaims, RoleName } from "./core.types";
 
 export interface AuthResult {
@@ -56,6 +57,14 @@ export async function register(input: {
       [companyId, roleIds.Owner, input.ownerEmail.toLowerCase(), passwordHash],
     );
     const userId = userRes.rows[0]!.id;
+    await writeAudit(tx, {
+      companyId,
+      userId,
+      action: "company.registered",
+      entity: "company",
+      entityId: companyId,
+      after: { companyName: input.companyName, ownerEmail: input.ownerEmail.toLowerCase() },
+    });
     const claims: AuthClaims = { sub: userId, companyId, role: "Owner" };
     return { companyId, userId, role: "Owner", ...tokens(claims) };
   });
@@ -85,6 +94,14 @@ export async function login(email: string, password: string): Promise<AuthResult
   if (!(await verifyPassword(password, user.password_hash))) {
     throw new AuthError("invalid credentials");
   }
+  // Login sits above tenancy → audit via the bypass connection with explicit company_id.
+  await writeAudit(workerPool, {
+    companyId: user.company_id,
+    userId: user.id,
+    action: "auth.login",
+    entity: "user",
+    entityId: user.id,
+  });
   const claims: AuthClaims = {
     sub: user.id,
     companyId: user.company_id,
